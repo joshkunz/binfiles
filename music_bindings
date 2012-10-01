@@ -1,0 +1,26 @@
+#!/usr/bin/python
+
+import os
+os.chdir("/home/josh/scripts.d")
+import music
+import sys
+
+player = music.getPlayer()
+
+if len(sys.argv) < 2:
+	sys.exit(1)
+
+farg = sys.argv[1].lower()
+
+if farg == "--play":
+	player.play()
+elif farg == "--pause":
+	player.pause()
+elif farg == "--toggle":
+	player.toggle()
+elif farg == "--next":
+	player.next()
+elif farg == "--back":
+	player.back()
+else:
+	sys.exit(1)

@@ -1,0 +1,124 @@
+#!/usr/bin/python
+
+# Rips songs from soundcloud
+# Usage:
+#   soundrip [page url]
+
+import requests
+import json
+import re
+import urlparse
+import argparse
+import sys
+from lxml import html
+
+MUTAGEN = False
+try:
+    from mutagen.easyid3 import EasyID3
+    MUTAGEN = True
+except ImportError:
+    pass
+
+PREFIX = "http://soundcloud.com"
+
+re_track = re.compile(r"window.SC.bufferTracks.push\((.*)\);$")
+
+def parse_script(script_tag):
+    """Check if the script contains track information"""
+    if script_tag.text is None: return None
+    match = re_track.search(script_tag.text.strip())
+    try:
+        return json.loads(match.group(1))
+    except AttributeError:
+        return None
+
+def find_script(url, scripts, greedy=False):
+    """Find the <script> tag that contains this page's track's info"""
+    parsed_url = urlparse.urlparse(url)
+    all_scripts = []
+    for script in scripts:
+        parsed_script = parse_script(script)
+        if greedy and parsed_script is not None: 
+            all_scripts.append(parsed_script)
+        elif (parsed_script is not None
+              and parsed_script['uri'] == parsed_url.path):
+            return parsed_script
+    return all_scripts
+
+def fetch_track_data(url, greedy=False):
+    """Get a dictionary of track data from a track page url"""
+    page = requests.get(url)
+    page = html.document_fromstring(page.text)
+    track_data = find_script(url, page.xpath('//script'), greedy=greedy)
+    return track_data
+
+def download_track(track_data, args):
+    """Download a track from soundhound"""
+    print "{0:-^70}".format(" Downloading Track ")
+    print "{title}\nby: {user[username]}".format(**track_data)
+
+    # Clean up the filename
+    filename = "{title} - {user[username]}.mp3".format(**track_data)
+    filename = filename.replace('/', '_')
+    url = "".join((PREFIX, track_data['uri']))
+    # Download the file
+    download_url = "/".join((url, "download"))
+    page = requests.get(download_url, allow_redirects=False)
+    # attempt to use the higher quality file
+    if page.status_code == 302 and page.headers["Location"] == url:
+        page = requests.get(track_data['streamUrl'])
+    else:
+        page = requests.get(download_url)
+
+    file_length = int(page.headers['Content-Length'])
+    written_length = 0.0
+    chunk_size = 1024 # 1 KiB
+    with open(filename, 'wb') as output:
+        for block in page.iter_content(chunk_size=chunk_size):
+            status = round((written_length/file_length)*100, 1)
+            # Status message
+            sys.stdout.write("\rDownloading: {0}%".format(status))
+            sys.stdout.flush()
+            written_length += chunk_size
+            output.write(block)
+    print "\n"
+    matched = None
+    replacer = lambda x: x.group(0)
+    tagger = EasyID3(filename)
+    var_matcher = re.compile(r"\$[0-9]*")
+    if args.filter:
+        matched = re.search(args.filter, track_data["title"])
+        def replacer(match):
+            id = match.group(0).replace("$", "")
+            return matched.group(int(id))
+    if args.title:
+        tagger["title"] = var_matcher.sub(replacer, args.title)
+    if args.artist:
+        tagger["artist"] = var_matcher.sub(replacer, args.artist)
+    if args.album:
+        tagger["album"] = var_matcher.sub(replacer, args.album)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog="soundrip")
+    parser.add_argument("url", help="URL of the page of the song you want to\
+                        download", nargs="+")
+    parser.add_argument("-g", "--greedy", "--page", help="Download all detected\
+                        tracks on a page. This is useful if you want to download\
+                        an entire page of tracks.", action="store_true")
+    parser.add_argument("-f", "--filter", help="Regex filter on the title. Used\
+                        in conjunction with the ID3 tagging instructions.")
+    parser.add_argument("-t", "--title", help="Set the ID3 'title' attribute.")
+    parser.add_argument("-a", "--artist", help="Set the ID3 'artist' attribute.")
+    parser.add_argument("-b", "--album", help="Set the ID3 'album' attribute.")
+    args = parser.parse_args()
+    download_queue = []
+    if args.greedy: print "Fetching Track Data..."
+    for url in args.url:
+        if args.greedy:
+            download_queue.extend(fetch_track_data(url, greedy=True))
+        else:
+            download_queue.append(fetch_track_data(url))
+    
+    for track in download_queue:
+        download_track(track, args)

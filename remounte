@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sudo umount /media/expansion
+sudo mount -a

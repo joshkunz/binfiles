@@ -1,0 +1,453 @@
+#!/usr/bin/python
+from operator import methodcaller
+from collections import defaultdict
+import re
+import fnmatch
+import os
+import codecs
+import yaml
+import sys
+import requests
+from lxml import etree
+from datetime import datetime
+import mimetypes
+import argparse
+from pprint import pprint
+import hashlib
+import bisect
+
+## Configuration
+
+# All paths are relative to this one
+ROOT_DIR = "~/podcasts"
+
+# Where to keep the cached feeds
+FEED_STORE = "feeds"
+
+# Where to store downloaded episodes
+EPISODE_STORE = "episodes"
+
+## Constants
+
+UTF8_WRITER = codecs.getwriter("utf-8")
+FEED_ENDINGS = ('atom', 'rss', 'xml')
+FEED_TIME = "%a, %d %b %Y %H:%M:%S"
+
+ROOT_DIR = os.path.expanduser(ROOT_DIR)
+ROOT_DIR = os.path.expandvars(ROOT_DIR)
+os.chdir(ROOT_DIR)
+
+## Classes
+
+class SimpleProgress(object):
+
+	def __init__(self, round_to=2):
+		self.round_to = round_to
+
+	def starting_writing(self):
+		"called on the start of a file download"
+		pass
+
+	def chunk_written(self, read, total):
+		"called on the write for every chunk"
+		if total is not None:
+			percent_complete = round((float(read)/total)*100, self.round_to)
+			sys.stdout.write("\rProgress: {0}%".format(percent_complete))
+		else:
+			sys.stdout.write("\rDownloaded: {0} bytes".format(read))
+		sys.stdout.flush()
+
+	def done_writing(self):
+		"called when writing is finished"
+		sys.stdout.write("\n")
+		sys.stdout.flush()
+
+## Utilities/General
+
+def serialize_to_unicode(x):
+	"serialize an item to unicode"
+	if isinstance(x, list):
+		return _s2u(x, xrange(len(x)))
+	elif isinstance(x, dict):
+		return _s2u(x, x.keys())
+	else:
+		return unicode(x)
+
+def _s2u(x, key):
+	"mutable serialization helper"
+	for index in key:
+		x[index] = serialize_to_unicode(x[index])
+	return x
+
+def get_safe(list, index, default=None):
+	"get a list index with a default value"
+	try:
+		return list[index]
+	except IndexError:
+		return default
+
+def split_at(x, n):
+	"Split x at position n"
+	return [x[:n], x[n:]]
+
+## Utilities/Paths
+
+def ensure_cast_dir(cast_name):
+	"Make sure the podcast's episode folder exists."
+	path = os.path.join(EPISODE_STORE, cast_name)
+	if os.path.exists(path) != True:
+		os.makedirs(path)
+	return path
+
+def ensure_feed_dir():
+	if os.path.exists(FEED_STORE) != True:
+		os.makedirs(FEED_STORE)
+
+def feed_pathname(feed_name):
+	"generate the name for a feed cache"
+	return os.path.join(FEED_STORE, ".".join((feed_name, "rss")))
+
+## Utilities/Iterators
+
+def iter_feeds(feedfile="feeds.yaml"):
+	"iterate through a the feed definition file"
+	with open(feedfile) as feed_file:
+		feeds = yaml.load(feed_file)
+	for feed_name, feed_values in feeds.iteritems():
+		feed_d = dict(name=feed_name)
+		feed_d.update(feed_values)
+		yield feed_d
+
+def iter_feed_mask(iterable, only=[]):
+	"Mask the iterator to only give requested feeds."
+	for x in iterable:
+		if x["name"] in only:
+			yield x
+		else:
+			pass
+
+def iter_details(parsed_feed):
+	for item in parsed_feed.xpath("//item"):
+		try:
+			yield item_details(item)
+		except IndexError:
+			# Some critical value couldn't be found...
+			pass
+
+def feed_iterator(only=[]):
+	if only == []:
+		return iter_feeds()
+	else:
+		return iter_feed_mask(iter_feeds(), only)
+
+## Utilities/Parsing
+
+def get_extension(headers, filed):
+	"Get the file extension for the file"
+	if headers["Content-Type"] is not None:
+		return mimetypes.guess_extension(headers["Content-Type"])
+	elif "type" in filed:
+		return mimetypes.guess_extension(filed["type"])
+	else: 
+		return ".unknown"
+
+def find_file(feed_item):
+	"get podcast file attributes"
+	enclosure = feed_item.xpath("enclosure")[0]
+	return dict(enclosure.attrib)
+
+def parse_date(date_string):
+	"Parse a date from an RSS feed into a datime object"
+	date, offset = map(methodcaller("strip"), date_string.rsplit(" ", 1))
+	date = datetime.strptime(date, FEED_TIME)
+	return date
+
+def item_details(feed_item):
+	"get a dictonary containing each feed item's data as a dictonary"
+	details = dict({
+		"title": feed_item.xpath("title/text()")[0],
+		"description": feed_item.xpath("description/text()")[0],
+		"link": get_safe(feed_item.xpath("link/text()"), 0, ""),
+		"published": parse_date(feed_item.xpath("pubDate/text()")[0]),
+		"file": find_file(feed_item)
+	})
+	return serialize_to_unicode(details)
+
+## Utilities/Printers
+
+def get_length(headers, filed):
+	if headers["Content-Length"] is not None:
+		return int(headers["Content-Length"])
+	elif "length" in filed and int(filed["length"]) != 0:
+		return int(filed["length"])
+	else:
+		return None
+
+def progressive_read_url(page, out_file, length, decode_unicode=False,
+					 	 chunk_size=1024, print_hook=SimpleProgress()):
+	"""Read a page from the internet in chunks, 
+	print_hook can be used to display a progress message"""
+
+	read_bytes = 0
+	print_hook.starting_writing()
+	for chunk in page.iter_content(chunk_size=chunk_size, 
+								   decode_unicode=decode_unicode):
+		out_file.write(chunk)
+		read_bytes += chunk_size
+		print_hook.chunk_written(read_bytes, length) 
+	print_hook.done_writing() #tell the printer reading is Done
+
+# Update Functionality
+
+class StreamingFile(object):
+
+	def __init__(self, url, chunk_size=1024, encoding=None, 
+				 print_hook=None, decode_unicode=False):
+		self.read_bytes = 0
+		self.chunk_size = chunk_size
+		self.print_hook = print_hook
+		self.decode = decode_unicode
+		self._request = requests.get(url)
+		if encoding:
+			self._request.encoding = encoding
+
+	def run(self, callback, length=None):
+		if self.print_hook: self.print_hook.starting_writing()
+		for chunk in self._request.iter_content(chunk_size=self.chunk_size,
+												decode_unicode=self.decode):
+			callback(chunk, self._request)
+			self.read_bytes += self.chunk_size
+			if self.print_hook:
+				self.print_hook.chunk_written(self.read_bytes, length)
+		if self.print_hook:
+			self.print_hook.done_writing()
+
+class UpdateChunk(object):
+	UN, MO = range(2)
+
+	def __init__(self, ref, chunk_size):
+		self.ref = ref
+		self.size = chunk_size
+		self.read_size = 0
+
+	def _hash(self, st):
+		return hashlib.sha1(st).hexdigest()
+
+	def _find_conflict(self, st1, st2):
+		st1_lines = st1.split("\n")
+		st2_lines = st2.split("\n")
+		x, y = st1_lines.pop(), st2_lines.pop()
+		while x == y:
+			x, y = st1_lines.pop(), st2_lines.pop()
+		print "diff line"
+		print x
+		print y
+
+	def hash_cmp(self, st1, st2):
+		return self._hash(st1) == self._hash(st2)
+
+	def __call__(self, chunk, request):
+		f = self.ref.read(self.size)
+		if self.hash_cmp(chunk, f) is False:
+			print "bad match"
+			print "Chunk", "="*40
+			print chunk.encode('ascii', 'replace')
+			print "File", "="*40
+			print f.encode('ascii', 'replace')
+			print self._find_conflict(chunk, f)
+			raise Exception("Break Here")
+
+def update_feedfile_streaming(url, name):
+	"Update a podcast over a streaming connection"
+	ensure_feed_dir()
+
+	print "[Streaming] Updating:", name
+	page = StreamingFile(url, encoding="utf-8", decode_unicode=True)
+	with open(feed_pathname(name), 'r') as feed_file:
+		writer = UTF8_WRITER(feed_file)
+		updater = UpdateChunk(feed_file, 1024)
+		page.run(updater)
+
+
+def update_feedfile(url, name):
+	"Get a feed from the internet"
+	ensure_feed_dir() # sanity check
+	print "Checking: {0}".format(name)
+	page = requests.get(url)
+	with open(feed_pathname(name), 'w') as feed_file:
+		writer = UTF8_WRITER(feed_file)
+		page.encoding = "utf-8"
+		progressive_read_url(page, writer, 
+							 int(page.headers["Content-Length"]) if \
+							 	page.headers["Content-Length"] is not None 
+								else None,
+							 decode_unicode=True)
+
+## Download Functionality
+
+def download_podcast(cast_name, item_details):
+	"Download a podcast item"
+	path = ensure_cast_dir(cast_name)
+
+	# Get the page and file attributes
+	page = requests.get(item_details["file"]["url"])
+	length, ext = get_length(page.headers, item_details["file"]), \
+				  get_extension(page.headers, item_details["file"])
+
+	# Download the file
+	path = os.path.join(path, item_details["title"]+ext)
+	print "Downloading:", item_details["title"]
+	with open(path, 'wb') as podcast_file:
+		progressive_read_url(page, podcast_file, length)
+
+def update(args):
+	"Update feeds."
+	for feed in feed_iterator(args.podcast):
+		try:
+			if args.streaming is True:
+				update_feedfile_streaming(feed["url"], feed["name"])
+			else:
+				update_feedfile(feed["url"], feed["name"])
+		except Exception, e:
+			print e
+
+def iter_parsed_feeds(only=[]):
+	for feed in feed_iterator(only):
+		yield (feed["name"], etree.parse(feed_pathname(feed["name"])))
+
+def iter_search(only=[], match=[], match_any=False):
+	for name, feed in iter_parsed_feeds(only):
+		for detail in iter_details(feed):
+			matched = [m(name, detail) for m in match]
+			if match_any == False and all(matched):
+				yield name, detail
+			elif match_any == True and any(matched):
+				yield name, detail
+
+def match_regex(regex, case_sensitive=False, fields=["title", "description"]):
+	"Match against a regex"
+	if case_sensitive:
+		regex = re.compile(regex, re.UNICODE)
+	else:
+		regex = re.compile(regex, re.UNICODE | re.IGNORECASE)
+	
+	def _match(name, detail):
+		for field in fields:
+			if regex.search(detail[field]):
+				return True
+
+	return _match
+
+def match_glob(glob, **kwargs):
+	"Match against a glob"
+	regex = fnmatch.translate(glob)
+	return match_regex(regex, **kwargs)
+
+def iter_first_episodes(only=[]):
+	for name, feed in iter_parsed_feeds(only):
+		yield (name, item_details(feed.xpath("//item")[0]))
+
+def print_items(detail_group, prefix="\t", cut=25):
+	group = detail_group[:cut]
+	for item in group:
+		print prefix+item["title"].strip()
+	if len(detail_group) > cut:
+		print prefix+"..."
+		print prefix+detail_group[-1]["title"].strip()
+
+def pprint_download_matrix(matrix):
+	for feed, items in matrix.iteritems():
+		print "{0:=^80}".format(" {0} - {1} ".format(feed, len(items)))
+		print_items(items)
+
+def download(args):
+	"Download Podcast Episodes"
+	if args.search is not None:
+		matchers = []
+		if args.regex == True:
+			matchers.append(match_regex(args.search))
+		else:
+			matchers.append(match_glob(args.search))
+		_iter = iter_search(only=args.podcast, match=matchers)
+	else:
+		_iter = iter_first_episodes(args.podcast)
+	
+	matrix = defaultdict(list)
+	for key, value in _iter:
+		matrix[key].append(value)
+
+	if args.silent:
+		pprint_download_matrix(matrix)
+	else:
+		for feed, episodes in matrix.iteritems():
+			for episode in episodes:
+				download_podcast(feed, episode)
+
+## REPL/eval
+
+def eval_action(args):
+	"Evaluate arguments"
+	args.method(args)
+
+def repl(args, parser):
+	"Read-Eval-Print-Loop"
+	eval_action(args)
+	while True:
+		args = raw_input("podcasts> ")
+		if args.lower() == "quit": sys.exit(0)
+		args = parser.parse_args(args.split()) 
+		eval_action(args)
+
+if __name__ == "__main__":
+
+	parser = argparse.ArgumentParser(prog='podcasts')
+	parser.add_argument("-i", "--interactive", "--repl", action='store_true',
+						help="run in an interactive loop.")
+
+	subparsers = parser.add_subparsers(title="commands")
+
+	## Update Section
+
+	update_ = subparsers.add_parser("update", 
+									help="update podcast feeds.")
+	update_.set_defaults(method=update)
+	update_.add_argument("podcast", nargs="*",
+						 help="Add podcast names to narrow the update.")
+	update_.add_argument("-f", "--force", action='store_true', dest='force',
+						 help="force updating podcast feeds, even if it \
+						 violates time restrictions in the feeds.yaml file.")
+	update_.add_argument("-r", "--streaming", action='store_true',
+						 help="use the experimental streaming updates")
+
+	## Download Section
+
+	download_ = subparsers.add_parser("download",
+									  help="download podcast episodes. If run\
+									  with no search arguments, download the most\
+									  recent podcast episode.")
+	download_.set_defaults(method=download)
+	download_.add_argument("podcast", nargs="*",
+						   help="apply the actions to a subset of the\
+						   podcasts.")
+	download_.add_argument("-S", "--search", help="search for a podcast to\
+						   download.", default=None)
+	download_.add_argument("-E", "--regex", help="Use a regex instead of the\
+						   normal shell-like globbing.", action="store_true")
+	download_.add_argument("-I", "--case-sensitive", help="Run a case-senseitive\
+						   search, insead of the default, case-insenseitive\
+						   search.", action="store_true")
+	download_.add_argument("-s", "--silent", "-d", "--dry-run",
+						   dest='silent', action='store_true',
+						   help="don't actually download any files, just\
+						   show which file would have been downloaded.")
+	download_.add_argument("-f", "--force", dest='force', action='store_true',
+						   help="force downloading the the podcasts, even\
+						   if they are already on disk.")
+
+	# Actual start
+	args = parser.parse_args(sys.argv[1:])
+	#sys.exit(0)
+	if args.interactive == True:
+		repl(args, parser)
+	else:
+		eval_action(args)

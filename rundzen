@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd /home/josh/bin
+python status.py | dzen2 -xs 1 -ta l -fg 'grey70' -fn "-*-fixed-*-r-*-*-14-*-*-*-*-*-*-*"

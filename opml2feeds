@@ -1,0 +1,30 @@
+#!/usr/bin/python
+
+import yaml
+from lxml import etree
+import argparse
+import sys
+
+
+def get_shortname(long_name):
+	sys.stderr.write("\rWhat do you want to call '{0}'?> ".format(long_name))
+	return raw_input()
+
+def convert(opml, feed):
+	parsed = etree.parse(opml)
+	mappings = {}
+	for outline in parsed.xpath('//outline'):
+		mappings[get_shortname(outline.attrib["title"])] = \
+				dict(url=outline.attrib["xmlUrl"])
+	yaml.dump(mappings, stream=feed, default_flow_style=False)
+	feed.close()
+
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser(prog='opml2feeds')
+	parser.add_argument("opml", type=argparse.FileType('r'),
+						help="opml file to convert, '-' for stdin.")
+	parser.add_argument("feed", type=argparse.FileType('w'),
+						help="converted feed, '-' for stdout")
+	args = parser.parse_args(sys.argv[1:])
+	convert(args.opml, args.feed)
+

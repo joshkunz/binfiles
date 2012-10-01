@@ -1,0 +1,64 @@
+import requests
+from nfsn import NFSNAuth
+from nfsn_config import NFSNLogin, NFSNKey
+import os, sys, json
+
+ADDRESS_STORE = os.path.join(os.environ["HOME"], ".nfsn-dynamicip")
+
+NFSNAuth.login = NFSNLogin
+NFSNAuth.api_key = NFSNKey
+
+nfsn = requests.session(auth=NFSNAuth())
+
+def make_dns_record(data, subdomain="home", type="A"):
+	return nfsn.post("https://api.nearlyfreespeech.net/dns/joshkunz.com/addRR",
+					 data=dict(name=subdomain, type=type, data=data.strip()),
+					 verify=False)
+
+def get_dns_list():
+	return nfsn.post(
+		"https://api.nearlyfreespeech.net/dns/joshkunz.com/listRRs", 
+		verify=False)
+
+def remove_dns_record(data, subdomain="home", type="A"):
+	return nfsn.post(
+		"https://api.nearlyfreespeech.net/dns/joshkunz.com/removeRR",
+		data=dict(name=subdomain, type=type, data=data), verify=False)
+
+def update_ip(ip, name="home"):
+	response = make_dns_record(ip, subdomain=name)
+	if response.status_code == 400:
+		record = filter(lambda x: x["name"] == name,
+						json.loads(get_dns_list().text))
+		if not record:
+			raise Exception("Malformed Request")
+		remove_dns_record(record[0]["data"], subdomain=record[0]["name"])
+		response = make_dns_record(ip, subdomain=name)
+		
+	if response.status_code != 200:
+		print response.status_code, response.text
+		raise Exception("Request did not complete successfully.")
+	r = nfsn.post(
+			"https://api.nearlyfreespeech.net/dns/joshkunz.com/updateSerial",
+			verify=False)
+
+ip = json.loads(requests.get("http://httpbin.org/ip").text)["origin"]
+
+try:
+	ip_file = open(ADDRESS_STORE)
+except IOError:
+	ip_file = open(ADDRESS_STORE, 'w')
+
+saved_ip = ""
+try:
+	saved_ip = ip_file.read().strip()
+except IOError:
+	pass
+ip_file.close()
+
+if saved_ip != ip:
+	print "Updating IP"
+	update_ip(ip)
+	ip_file = open(ADDRESS_STORE, 'w')
+	ip_file.write(ip+"\n")
+	ip_file.close()

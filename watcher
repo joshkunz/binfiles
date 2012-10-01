@@ -1,0 +1,70 @@
+#!/usr/bin/python
+
+import os, sys, argparse, subprocess
+import pyinotify
+from datetime import datetime
+import re
+import copy
+
+parser = argparse.ArgumentParser(description="Watch some files on the drive",
+								 prog="watcher")
+parser.add_argument("-r", "-R", "--recurse", action="store_true", default=False,
+					help="Monitor directorys recursively")
+parser.add_argument("--filter", "-f", action="store", nargs=1, default=None,
+					help="Filter by a regex match, using python regex syntax")
+parser.add_argument("-n", "--no-pass", action="store_true", default=False,
+					help="Don't pass the filename to the program")
+parser.add_argument("-p", "--path", action="append", type=str, required=True, 
+					help="A list of files (or paths if using -r) to be watched")
+parser.add_argument("command", nargs=argparse.REMAINDER, action="store", type=str,
+					help="A command to be executed every time a source files changes")
+
+args = parser.parse_args(sys.argv[1:])
+
+class ChangeHandler(pyinotify.ProcessEvent):
+
+	num_ran = 0
+	command = args.command
+	re_match = re.compile(args.filter[0]) if args.filter else False
+	pass_file = not args.no_pass
+
+	def process_IN_MODIFY(self, event):
+		if self.re_match and self.re_match.search(event.name):
+			self.run_command(event.pathname)
+		elif not self.re_match:
+			self.run_command(event.pathname)
+
+	def run_command(self, filename):
+		self.num_ran += 1
+
+		command = copy.copy(self.command)
+		if self.pass_file:
+			command.append(filename)
+		print u"[{ran} - {date}] {command}"\
+			  .format(ran=self.num_ran,
+					  date=datetime.now().strftime("%m/%d/%Y %H:%M:%S"),
+					  command=u" ".join(command))
+		
+		out = os.tmpfile()
+		status = subprocess.call(command, stderr=out, stdout=out)
+		if status: print "Process returned a Non-Zero status code"
+		outr = out.read()
+		if outr.strip():
+			print outr
+		out.close()
+
+wm = pyinotify.WatchManager()
+
+handler = ChangeHandler()
+notifier = pyinotify.Notifier(wm, handler)
+
+watched_directories = []
+
+for dir in args.path:
+	watched_directories.append(
+			wm.add_watch(dir, pyinotify.IN_MODIFY, rec=args.recurse)
+			)
+
+print "Watching:", " | ".join(args.path)
+
+notifier.loop()
