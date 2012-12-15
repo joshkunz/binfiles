@@ -2,6 +2,7 @@ My /bin/ files
 =========
 
 ### Scripts I Wrote
+* ashuffle - A script that will continuously enque songs for [mpd][].
 * linkdf.sh - It's a simple script to symbolically link my dot files from a
 directory into ~. It could use some fixing up.
 * music.py - It's an interface to all of the music players I was using at the
@@ -41,3 +42,4 @@ I don't remember.
   [requests]: http://docs.python-requests.org/en/latest/
   [youtube-dl]: http://rg3.github.com/youtube-dl/
   [todo]: http://todotxt.com/
+  [mpd]: http://mpd.wikia.com/wiki/Music_Player_Daemon_Wiki

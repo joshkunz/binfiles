@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+import socket
+import random
+import sys
+import re
+re_key_matcher = re.compile("([^:]+): (.*)")
+
+MPD_ADDRESS = "localhost"
+MPD_PORT = 6600
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((MPD_ADDRESS, MPD_PORT))
+# read out the "hello message"
+sock.recv(1024)
+
+def arr_get(arr, index, default=None):
+    "like dict.get method, get an index with a default"
+    try:
+        return arr[index]
+    except IndexError:
+        return default
+
+def read_to_ok(sock, block_size=1024):
+    "read a socket up to the 'OK' message at the end"
+    data = sock.recv(block_size).decode("utf-8")
+    while data[len(data)-3:len(data)] != u"OK\n":
+        data += sock.recv(block_size).decode("utf-8")
+        if "ACK" in data: return data
+    # return everything except the last four chars: OK\n\n
+    return data[0:len(data)-4]
+
+def send_command(sock, command):
+    "Don't return results"
+    command = unicode(command)+u"\n"
+    sock.sendall(command.encode("utf-8"))
+
+def get_command(sock, command):
+    "Send a command to the mpd server, returns the output"
+    send_command(sock, command)
+    return read_to_ok(sock)
+
+def wrap_name(name, wrap=u"\""):
+    return wrap + unicode(name) + wrap
+
+songs = get_command(sock, "listall")
+songs = songs.split(u"\n")
+# filter directories
+songs = [song for song in songs if song[:6] == "file: "]
+
+def queue_songs(sock, songs, count=10):
+    "add count songs to the current playlist"
+    for x in xrange(count):
+        song = random.choice(songs)[6:]
+        add_command = u"add " + wrap_name(song)
+        get_command(sock, add_command)
+
+def mpd_to_python(mpd):
+    "turn an mpd return list into a python object"
+    objects = []
+    mpd = unicode(mpd)
+    cur_obj = {}
+    for line in mpd.split(u"\n"):
+        match = re_key_matcher.match(line)
+        if match.group(1) in cur_obj:
+            objects.append(cur_obj)
+            cur_obj = {}
+        cur_obj[match.group(1)] = match.group(2)
+    if objects: return objects
+    else: return cur_obj
+
+import sys
+if len(sys.argv) > 1:
+    print "Adding", sys.argv[1], "songs."
+    queue_songs(sock, songs, count=int(sys.argv[1]))
+    sock.close()
+    sys.exit(0)
+
+from time import sleep
+while True:
+    state = mpd_to_python(get_command(sock, "status"))
+    if state["state"] == u'stop':
+        queue_songs(sock, songs, count=1)
+        get_command(sock, "play")
+    elif int(state["song"]) == int(state["playlistlength"])-1:
+        queue_songs(sock, songs, count=1)
+    # wait for player events
+    get_command(sock, "idle player") 
+
+sock.close()
