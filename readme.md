@@ -1,4 +1,4 @@
-My /bin/ files
+My ~/bin/ files
 =========
 
 ### Scripts I Wrote
