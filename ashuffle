@@ -76,14 +76,17 @@ if len(sys.argv) > 1:
     sys.exit(0)
 
 from time import sleep
-while True:
-    state = mpd_to_python(get_command(sock, "status"))
-    if state["state"] == u'stop':
-        queue_songs(sock, songs, count=1)
-        get_command(sock, "play")
-    elif int(state["song"]) == int(state["playlistlength"])-1:
-        queue_songs(sock, songs, count=1)
-    # wait for player events
-    get_command(sock, "idle player") 
+try: 
+    while True:
+        state = mpd_to_python(get_command(sock, "status"))
+        if state["state"] == u'stop':
+            queue_songs(sock, songs, count=1)
+            get_command(sock, "play")
+        elif int(state["song"]) == int(state["playlistlength"])-1:
+            queue_songs(sock, songs, count=1)
+        # wait for player events
+        get_command(sock, "idle player") 
+except KeyboardInterrupt:
+    pass
 
 sock.close()

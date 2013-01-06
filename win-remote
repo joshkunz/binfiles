@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+rdesktop -u "USERS\jbkunz" -g 1440x750 animal.eng.utah.edu

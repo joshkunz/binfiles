@@ -3,6 +3,7 @@ My ~/bin/ files
 
 ### Scripts I Wrote
 * ashuffle - A script that will continuously enque songs for [mpd][].
+* lf - A simple bash script that list files in a directory based on size.
 * linkdf.sh - It's a simple script to symbolically link my dot files from a
 directory into ~. It could use some fixing up.
 * music.py - It's an interface to all of the music players I was using at the

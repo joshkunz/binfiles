@@ -1,0 +1,25 @@
+#!/bin/bash
+# lf for list-files or something. Lists the files
+# in the current directory by filesize
+
+FIND_FLAGS=""
+args=`getopt :c $*`
+set -- $args
+for arg; do
+    shift;
+    case "$arg" in
+        -c) FIND_FLAGS="-maxdepth 1"; 
+            break;;
+        --) COUNT=$1; 
+            break;;
+    esac
+done
+
+if [[ $COUNT = "" ]]; then
+    COUNT=10
+fi
+
+# Get the size of the files in the directory
+find . $FIND_FLAGS -type f -print0 | xargs -0 du -s \
+    | sort -nr | cut -f2 | tr "\n" "\0" | xargs -0 du -sh \
+    | head -n $COUNT
