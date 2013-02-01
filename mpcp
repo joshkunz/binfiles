@@ -1,0 +1,15 @@
+#!/bin/bash
+
+function tracknum {
+    mpc | sed -E '2 { s/.*#([0-9]*).*/\1/; p; }; d;'
+}
+
+while sleep 1; do tput clear;
+    tput cup 0 0;
+    mpc;
+    echo "~Playlist~"
+
+    # print out the next 10 tracks
+    offset=$((`tracknum` + 1))
+    mpc playlist | tail -n "+$offset" | head -n 10
+done
