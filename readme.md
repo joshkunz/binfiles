@@ -25,6 +25,7 @@ wrote a script to disconnect it and reconnect it.
 * status.py - A python script that writes various system information to stdout
 in [dzen2][]'s format for display. The top of it actually has a class for adding in
 arbitrary information. It's actually kinda cool.
+* updatesums - Update a checksums file
 * watcher - A script that runs some command when a file (or directory of files) 
 updates by using inotify. Handy for doing things like re-compiling files.
 * win-remote - A shortcut for connecting to my school's windows machines.
