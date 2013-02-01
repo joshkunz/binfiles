@@ -3,9 +3,11 @@ My ~/bin/ files
 
 ### Scripts I Wrote
 * ashuffle - A script that will continuously enque songs for [mpd][].
+* dotmake - A script that generates a Makefile to link your dotfiles automatically.
 * lf - A simple bash script that list files in a directory based on size.
 * linkdf.sh - It's a simple script to symbolically link my dot files from a
 directory into ~. It could use some fixing up.
+* mpcp - an extremely minimal music mpd interface using mpc
 * music.py - It's an interface to all of the music players I was using at the
 time: Spotify (the linux version) and cmus. It provides a standard interface to
 do things like playing, pausing and getting information about playing tracks.
