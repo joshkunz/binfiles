@@ -28,7 +28,7 @@ def humanize_bytes(num, round_to=1):
 
 #set to a unicode enabled pipe
 debug(locale.getpreferredencoding())
-sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
+sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
 
 class RunningLoop(object):
 
@@ -52,7 +52,7 @@ class RunningLoop(object):
 		func, wait, last_out = func_tuple
 		if wait >= func.every:
 			try:
-				out = func().encode('utf-8')
+				out = unicode(func())
 			except Exception, e:
 				debug(func.__name__+' '+str(e))
 				out = u''
@@ -71,7 +71,7 @@ class RunningLoop(object):
 				sys.stdout.write(last)
 				#debug(last, nn=True) #print out the command sent to dzen
 
-			sys.stdout.write("\n")
+			sys.stdout.write(u"\n")
 			sys.stdout.flush()
 			sleep(self.interval)
 
@@ -92,6 +92,17 @@ def volume():
 	level = re.search(r"Front Left: [^\[]*\[([0-9%]*)\]", data).group(1)
 	return "^fg(#ffffff){level}^fg()".format(level=level)
 volume.every = 0.3
+
+@runner.display
+def now_playing():
+    out = u"^p(5)"
+    mpc_status = subprocess.check_output(["mpc"]).split("\n")
+    if len(mpc_status) < 3:
+        return
+    out += u"^fg(lightblue)"
+    out += mpc_status[0].decode('utf-8')
+    out += u"^fg()"
+    return out
 
 #@runner.display
 #def now_playing():

@@ -1,15 +1,28 @@
 #!/bin/bash
 
+CUR_TRACK=''
+CUR_LEN=''
+
 function tracknum {
     mpc | sed -E '2 { s/.*#([0-9]*).*/\1/; p; }; d;'
 }
 
-while sleep 1; do tput clear;
-    tput cup 0 0;
-    mpc;
+function printcurrent {
+    mpc | head -n1
+    mpc | tail -n1
     echo "~Playlist~"
-
     # print out the next 10 tracks
     offset=$((`tracknum` + 1))
     mpc playlist | tail -n "+$offset" | head -n 10
+}
+
+while true; do
+    track=`mpc | head -n1`
+    if [ "$CUR_TRACK" != "$track" ]; then
+        clear
+        printcurrent
+        CUR_LEN=`printcurrent | wc -l`
+        CUR_TRACK=$track
+    fi
+    echo -en "\r`mpc | head -n2 | tail -n1`"
 done

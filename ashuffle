@@ -23,10 +23,26 @@ def arr_get(arr, index, default=None):
 def read_to_ok(sock, block_size=1024):
     "read a socket up to the 'OK' message at the end"
     data = sock.recv(block_size).decode("utf-8")
+    buff = ''
     while data[len(data)-3:len(data)] != u"OK\n":
-        data += sock.recv(block_size).decode("utf-8")
-        if "ACK" in data: return data
+        buff += bytes(sock.recv(block_size))
+        # THIS IS IMPORTANT, the problem here is that our data
+        # coming in can get fragmented by the fixed size of the recv call. UTF-8
+        # characters can span multiple bytes so it's possible that a character
+        # got cut off, mid-transmission. The way I'm fixing that here is by
+        # buffering the received data as bytes and re-trying the decode.
+        try: 
+            data += buff.decode("utf-8")
+            buff = ''
+        except UnicodeDecodeError, e:
+            if e.reason == "unexpected end of data":
+                pass
+            else :
+                raise e
+        if u"ACK" in data: return data
     # return everything except the last four chars: OK\n\n
+    if len(buff) > 0:
+        raise UnicodeDecodeError("Incomplete transmission")
     return data[0:len(data)-4]
 
 def send_command(sock, command):
