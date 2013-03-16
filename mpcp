@@ -3,26 +3,34 @@
 CUR_TRACK=''
 CUR_LEN=''
 
+# Set default MPC_FMT if unset
+MPC_FMT=${MPC_FMT:='[[%artist% - ]%title%[ (on %album%)]]|[%file%]'}
+
 function tracknum {
-    mpc | sed -E '2 { s/.*#([0-9]*).*/\1/; p; }; d;'
+    mpc -f "$MPC_FMT" | sed -E '2 { s/.*#([0-9]*).*/\1/; p; }; d;'
 }
 
 function printcurrent {
-    mpc | head -n1
-    mpc | tail -n1
+    mpc -f "$MPC_FMT" | head -n1
+    mpc -f "$MPC_FMT" | tail -n1
     echo "~Playlist~"
     # print out the next 10 tracks
     offset=$((`tracknum` + 1))
-    mpc playlist | tail -n "+$offset" | head -n 10
+    mpc -f "$MPC_FMT" playlist | tail -n "+$offset" | head -n 10
 }
 
-while true; do
-    track=`mpc | head -n1`
+#prevent intial delay
+clear
+printcurrent
+
+# 1 second resolution
+while sleep 1; do
+    track=`mpc -f "$MPC_FMT" | head -n1`
     if [ "$CUR_TRACK" != "$track" ]; then
         clear
         printcurrent
         CUR_LEN=`printcurrent | wc -l`
         CUR_TRACK=$track
     fi
-    echo -en "\r`mpc | head -n2 | tail -n1`"
+    echo -en "\r`mpc -f "$MPC_FMT" | head -n2 | tail -n1`"
 done

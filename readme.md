@@ -18,6 +18,7 @@ worked.
 DNS. It's there to provide dynamic DNS stuff.
 * nfsn.py - A [requests][] auth plugin thing for the [NFSN][nfsn] api.
 * opml2feeds - Converts a .opml file of podcasts to yaml compatible with [podcasts][].
+* pick - output random lines from stdin, using probability!
 * psearch - A script that greps your PATH for programs.
 * remounte - One of my drives keeps disconnecting. So instead of fixing the problem I 
 wrote a script to disconnect it and reconnect it.

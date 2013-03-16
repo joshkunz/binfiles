@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+
+from argparse import ArgumentParser
+import sys
+import random
+
+parser = ArgumentParser()
+total_group = parser.add_mutually_exclusive_group()
+total_group.add_argument("-a", "--alpha", type=float, required=False, default=0.5)
+count_known = total_group.add_argument_group()
+count_known.add_argument("--total", default=0, type=int,
+                         help="Total number of items coming in on stdin")
+count_known.add_argument("--get", type=int,
+                         help="Number of items to take from the stream (on average)")
+args = parser.parse_args()
+
+if args.total:
+    args.alpha = 1 - (float(args.get) / args.total)
+
+for line in sys.stdin:
+    if random.random() > args.alpha: print line,
