@@ -2,10 +2,15 @@
 import socket
 import random
 import sys
+import os
 import re
 re_key_matcher = re.compile("([^:]+): (.*)")
 
-MPD_ADDRESS = "localhost"
+if "MPD_HOST" in os.environ:
+    print "Using Host!"
+    MPD_ADDRESS = os.environ["MPD_HOST"]
+else:
+    MPD_ADDRESS = "localhost"
 MPD_PORT = 6600
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

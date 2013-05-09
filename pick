@@ -15,7 +15,10 @@ count_known.add_argument("--get", type=int,
 args = parser.parse_args()
 
 if args.total:
-    args.alpha = 1 - (float(args.get) / args.total)
+    args.alpha = (float(args.get) / args.total)
+
+# Fix the percentage
+args.alpha = 1 - args.alpha
 
 for line in sys.stdin:
     if random.random() > args.alpha: print line,
