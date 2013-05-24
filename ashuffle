@@ -11,7 +11,11 @@ if "MPD_HOST" in os.environ:
     MPD_ADDRESS = os.environ["MPD_HOST"]
 else:
     MPD_ADDRESS = "localhost"
-MPD_PORT = 6600
+
+if "MPD_PORT" in os.environ:
+    MPD_PORT = int(os.environ["MPD_PORT"])
+else:
+    MPD_PORT = 6600
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sock.connect((MPD_ADDRESS, MPD_PORT))
@@ -42,7 +46,7 @@ def read_to_ok(sock, block_size=1024):
         except UnicodeDecodeError, e:
             if e.reason == "unexpected end of data":
                 pass
-            else :
+            else:
                 raise e
         if u"ACK" in data: return data
     # return everything except the last four chars: OK\n\n

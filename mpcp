@@ -1,5 +1,9 @@
 #!/bin/bash
 
+NEXT=''
+PREV='q'
+TOGGLE_PAUSE='p'
+
 CUR_TRACK=''
 CUR_LEN=''
 
@@ -19,12 +23,23 @@ function printcurrent {
     mpc -f "$MPC_FMT" playlist | tail -n "+$offset" | head -n 10
 }
 
+function handle_char {
+    case $1 in
+        $NEXT) mpc -f "$MPC_FMT" next;;
+        $PREV) mpc -f "$MPC_FMT" prev;;
+$TOGGLE_PAUSE) mpc -f "$MPC_FMT" toggle;;
+    esac
+}
+
 #prevent intial delay
 clear
 printcurrent
 
 # 1 second resolution
-while sleep 1; do
+while true; do
+    read -n 1 -t 1 IN
+    if [ $? -eq 0 ]; then handle_char $IN; fi
+
     track=`mpc -f "$MPC_FMT" | head -n1`
     if [ "$CUR_TRACK" != "$track" ]; then
         clear
