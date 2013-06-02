@@ -4,6 +4,7 @@ My ~/bin/ files
 ### Scripts I Wrote
 * ashuffle - A script that will continuously enque songs for [mpd][].
 * dotmake - A script that generates a Makefile to link your dotfiles automatically.
+* htmlencode - Encode a given string into HTML encoded identities.
 * lf - A simple bash script that list files in a directory based on size.
 * linkdf.sh - It's a simple script to symbolically link my dot files from a
 directory into ~. It could use some fixing up.
@@ -26,6 +27,7 @@ wrote a script to disconnect it and reconnect it.
 * status.py - A python script that writes various system information to stdout
 in [dzen2][]'s format for display. The top of it actually has a class for adding in
 arbitrary information. It's actually kinda cool.
+* tn - A simple command to open a new not taking file.
 * updatesums - Update a checksums file
 * watcher - A script that runs some command when a file (or directory of files) 
 updates by using inotify. Handy for doing things like re-compiling files.
