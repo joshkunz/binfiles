@@ -42,9 +42,11 @@ I don't remember.
 ### Symbolic Links
 * [podcasts][]
 * [soundrip][]
+* [ashuffle][]
 
   [podcasts]: https://github.com/Joshkunz/podcasts
   [soundrip]: https://github.com/Joshkunz/soundrip
+  [ashuffle]: https://github.com/Joshkunz/ashuffle
   [dzen2]: https://github.com/robm/dzen
   [nfsn]: https://www.nearlyfreespeech.net/
   [requests]: http://docs.python-requests.org/en/latest/
