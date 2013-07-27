@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
 DATE=`date +"%Y%m%d"`
+EXT="text"
 
-vim $1_${DATE}.mkd
+vim $1_${DATE}.${EXT}
