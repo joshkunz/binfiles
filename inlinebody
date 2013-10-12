@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+from pynliner import Pynliner
+from lxml import etree
+import sys
+
+liner = Pynliner().from_string(sys.stdin.read())
+
+doc = etree.HTML(liner.run())
+for child in doc.xpath("//body/child::*"):
+    print etree.tostring(child), 

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+${FLAC_OPTS:='-d'}
+${LAME_OPTS:='-h -V 0'}
+
+echo "Decompressing flac files"
+flac $FLAC_OPTS *.flac
+rm *.flac
+echo "Encoding decompressed files to mp3"
+find . -maxdepth 1 -name "*.wav" -print0 | xargs -0 -I % lame $LAME_OPTS "%"
+rm *.wav

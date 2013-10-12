@@ -4,11 +4,22 @@ My ~/bin/ files
 ### Scripts I Wrote
 * ashuffle - A script that will continuously enque songs for [mpd][].
 * dotmake - A script that generates a Makefile to link your dotfiles automatically.
+* flac2mp3 - Simple script for converting a directory full of flac files into
+  a directory full of mp3 files.
+* fpost - My school's CMS [Canvas](http://www.instructure.com/) has a pretty awful
+  WYSIWYG editor. Since I post a lot of example source, I wrote this script
+  which renders markdown files, inlines the CSS and then dumps the HTML to
+  standard out for pasting into the bare-HTML input.
 * htmlencode - Encode a given string into HTML encoded identities.
+* inlinebody - Takes an HTML page on stdin, inlines the CSS and outputs
+  the 'body' portion. Used with `fpost`.
 * lf - A simple bash script that list files in a directory based on size.
 * linkdf.sh - It's a simple script to symbolically link my dot files from a
 directory into ~. It could use some fixing up.
 * mpcp - an extremely minimal music mpd interface using mpc
+* mqueue - Adds a file to mpd, even if that file isn't in MPD's library. I
+  had to [patch][fileaccess-patch] mpd to get this to work. I think it had
+  a faulty check.
 * music.py - It's an interface to all of the music players I was using at the
 time: Spotify (the linux version) and cmus. It provides a standard interface to
 do things like playing, pausing and getting information about playing tracks.
@@ -27,6 +38,7 @@ wrote a script to disconnect it and reconnect it.
 * status.py - A python script that writes various system information to stdout
 in [dzen2][]'s format for display. The top of it actually has a class for adding in
 arbitrary information. It's actually kinda cool.
+* sync\_music - Sync my music library between my laptop and my desktop.
 * tn - A simple command to open a new not taking file.
 * updatesums - Update a checksums file
 * watcher - A script that runs some command when a file (or directory of files) 
@@ -43,6 +55,9 @@ I don't remember.
 * [podcasts][]
 * [soundrip][]
 * [ashuffle][]
+* [k2pdfopt][]
+* python27 - Symlinks to my local install of python 2.7 for cross-compatibility.
+* [vlcwrap][]
 
   [podcasts]: https://github.com/Joshkunz/podcasts
   [soundrip]: https://github.com/Joshkunz/soundrip
@@ -53,3 +68,6 @@ I don't remember.
   [youtube-dl]: http://rg3.github.com/youtube-dl/
   [todo]: http://todotxt.com/
   [mpd]: http://mpd.wikia.com/wiki/Music_Player_Daemon_Wiki
+  [k2pdfopt]: http://willus.com/k2pdfopt/
+  [fileaccess-patch]: https://gist.github.com/Joshkunz/6946483
+  [vlcwrap]: https://gist.github.com/Joshkunz/6410613

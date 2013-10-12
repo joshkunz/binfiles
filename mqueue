@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+while (( $# > 0 )); do
+    mpc add "file://`pwd`/$1"
+    shift
+done
