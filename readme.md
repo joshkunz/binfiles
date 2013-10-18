@@ -4,6 +4,8 @@ My ~/bin/ files
 ### Scripts I Wrote
 * ashuffle - A script that will continuously enque songs for [mpd][].
 * dotmake - A script that generates a Makefile to link your dotfiles automatically.
+* finish\_album - Add the tracks from the currently playing song's album
+  after the currently playing song. 
 * flac2mp3 - Simple script for converting a directory full of flac files into
   a directory full of mp3 files.
 * fpost - My school's CMS [Canvas](http://www.instructure.com/) has a pretty awful

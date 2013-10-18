@@ -4,6 +4,7 @@ NEXT=''
 PREV='t'
 TOGGLE_PAUSE='p'
 QUIT='q'
+FINISH_ALBUM='f'
 
 CUR_TRACK=''
 CUR_LEN=''
@@ -42,6 +43,7 @@ function handle_char {
         $NEXT) mpc -f "$MPC_FMT" next;;
         $PREV) mpc -f "$MPC_FMT" prev;;
 $TOGGLE_PAUSE) mpc -f "$MPC_FMT" toggle;;
+$FINISH_ALBUM) finish_album;;
         $QUIT) echo; exit 0;;
     esac
 }

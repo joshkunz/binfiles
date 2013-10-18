@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+QUERY=`mpc -f "artist '%artist%' album '%album%'" | head -n1`
+
+TRACK=`mpc -f "%track%" | head -n1`
+TRACK=$(( TRACK + 1 ))
+
+# Add the rest of the album
+bash -c "mpc search $QUERY" | sed "$TRACK,$ { p; }; d" | mpc insert
+
+
+
+
