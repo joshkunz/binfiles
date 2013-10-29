@@ -22,6 +22,8 @@ directory into ~. It could use some fixing up.
 * mqueue - Adds a file to mpd, even if that file isn't in MPD's library. I
   had to [patch][fileaccess-patch] mpd to get this to work. I think it had
   a faulty check.
+* mshuffle_dir - Shuffle add music files in this directory and all sub-directories
+  using [ashuffle][].
 * music.py - It's an interface to all of the music players I was using at the
 time: Spotify (the linux version) and cmus. It provides a standard interface to
 do things like playing, pausing and getting information about playing tracks.
@@ -30,8 +32,9 @@ worked.
 * nfsn-pingbot - A script I cron to update my ip address on 
 [NearlyFreeSpeach.net][nfsn]'s
 DNS. It's there to provide dynamic DNS stuff.
-* nfsn.py - A [requests][] auth plugin thing for the [NFSN][nfsn] api.
 * opml2feeds - Converts a .opml file of podcasts to yaml compatible with [podcasts][].
+* pfile - Open the next file of a given name, if that file already exists, add an
+  incrementing counter to the end.
 * pick - output random lines from stdin, using probability!
 * psearch - A script that greps your PATH for programs.
 * remounte - One of my drives keeps disconnecting. So instead of fixing the problem I 
