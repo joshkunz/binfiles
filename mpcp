@@ -25,8 +25,19 @@ function next_songs {
     mpc -f "$MPC_FMT" playlist | tail -n "+$offset" | head -n $1
 }
 
+function big_title {
+    title=`mpc -f "[%title% - %artist%]" | head -n1`
+    if [ -z "$title" ]; then
+        title=`mpc -f "%file%" | head -n1 | sed -E 's$.*/(.*)$\1$'`
+    fi
+    term_width=`stty size | cut -d" " -f2`
+    echo "$title" | figlet -w $term_width -c
+}
+
+
 function printcurrent {
-    mpc -f "$MPC_FMT" | head -n1
+    clear
+    big_title
     mpc -f "$MPC_FMT" | tail -n1
     # Get a list of upcomming songs
     _song_count=`next_songs $PLAYLIST_LEN | wc -l | sed -E 's/[ ]*//g'`
@@ -52,6 +63,9 @@ $FINISH_ALBUM) finish_album;;
 clear
 printcurrent
 
+# re-draw when the terminal changes size
+trap printcurrent SIGWINCH
+
 # 1 second resolution
 while true; do
     read -n 1 -t 1 IN
@@ -59,7 +73,6 @@ while true; do
 
     track=`mpc -f "$MPC_FMT" | head -n1`
     if [ "$CUR_TRACK" != "$track" ]; then
-        clear
         printcurrent
         CUR_LEN=`printcurrent | wc -l`
         CUR_TRACK=$track
