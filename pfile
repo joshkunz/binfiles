@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+DATE=`date +"%Y%m%d"`
+COUNTER=1
+
+while [ -f $1${COUNTER}_${DATE}.md ]; do
+    COUNTER=$((COUNTER + 1));
+done
+
+vim $1${COUNTER}_${DATE}.md

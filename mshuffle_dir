@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# find all mp3, flac, and wav files in the directory and shuffle them
+find `pwd` \( -name "*.mp3" -or -name "*.flac" -or -name "*.wav" \) \
+    | awk '{ printf "file://%s\n", $0; }' \
+    | ashuffle -n -f -
