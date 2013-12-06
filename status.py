@@ -4,6 +4,9 @@ from time import sleep
 #import music
 import subprocess
 import re
+import os
+
+DEFAULT_MPC_FMT = "[[%artist% - ]%title%[ (on %album%)]]|[%file%]"
 
 # A script to pipe into dzen
 
@@ -96,32 +99,14 @@ volume.every = 0.3
 @runner.display
 def now_playing():
     out = u"^p(5)"
-    mpc_status = subprocess.check_output(["mpc"]).split("\n")
+    mpc_format_arg = ["-f", os.environ.get("MPC_FMT", DEFAULT_MPC_FMT)]
+    mpc_status = subprocess.check_output(["mpc"] + mpc_format_arg).split("\n")
     if len(mpc_status) < 3:
-        return
+        return ""
     out += u"^fg(lightblue)"
     out += mpc_status[0].decode('utf-8')
     out += u"^fg()"
     return out
-
-#@runner.display
-#def now_playing():
-#	player = music.getPlayer()
-#	mt = player.meta()
-#	out = u"^p(5)"
-#	if isinstance(player, music.Spotify):
-#		return (out \
-#			 +  u"[^fg(lightgreen)Spotify^fg()] {title!s} "\
-#			 +  u"({artist[0]!s} on {album!s})")\
-#			   .format(**mt)
-#	else:
-#		return mt["tag"]["title"].decode('utf-8')
-#		mt["tag"]["artist"].encode('utf-8')
-#		mt["tag"]["album"].encode('utf-8')
-#	 	return (out \
-#			 +  u"[^fg(lightblue)Cmus^fg()] {tag[title]} "\
-#			 +  u"({tag[artist]} on {tag[album]})")\
-#			   .format(**mt)
 
 runner.display_const(" <> ") # Network
 
@@ -157,12 +142,14 @@ def network_usage():
 	stats = f.read()
 	f.close()
 
-	eth = re.search(r"eth0:(.*)$", stats).group(1)
+	eth = re.search(r"eth0:(.*)$", stats, flags = re.MULTILINE)
+        if eth is not None: eth = eth.group(1)
+        else: return ""
 	eth = eth.strip()
 	eth = re.split(r"\s*", eth)
 	recv = humanize_bytes(int(eth[0]))
 	sent = humanize_bytes(int(eth[8]))
-	return ("^p(10)^fg(#fff700){sent[0]}{sent[1]}^fg()"\
+	return ("^p(10)^fg(#fff700){sent[0]}{sent[1]}^fg()"
 		 + "^p(5)^fg(#4287F5){recv[0]}{recv[1]}^fg()")\
 		   .format(sent=sent, recv=recv)
 
