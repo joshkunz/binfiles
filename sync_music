@@ -8,7 +8,7 @@
 #         -u: update
 
 REMOTE_SRC="desktop:~/music/"
-LOCAL_SRC="~/Music/Library/"
+LOCAL_SRC="$HOME/Music/Library/"
 
 # Sync remote -> local
 rsync --progress -rhvtu $REMOTE_SRC $LOCAL_SRC 

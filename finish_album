@@ -7,7 +7,3 @@ TRACK=$(( TRACK + 1 ))
 
 # Add the rest of the album
 bash -c "mpc search $QUERY" | sed "$TRACK,$ { p; }; d" | mpc insert
-
-
-
-
