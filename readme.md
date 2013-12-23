@@ -19,6 +19,8 @@ My ~/bin/ files
 * linkdf.sh - It's a simple script to symbolically link my dot files from a
 directory into ~. It could use some fixing up.
 * mpcp - an extremely minimal music mpd interface using mpc
+* mpc_trans - A bash script for transferring the state of one MPD instance to
+  another mpd instance.
 * mqueue - Adds a file to mpd, even if that file isn't in MPD's library. I
   had to [patch][fileaccess-patch] mpd to get this to work. I think it had
   a faulty check.
