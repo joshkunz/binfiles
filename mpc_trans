@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# Copy the state of one MPD instance to another (for example if you're switching
+# from a desktop player to a local player)
+
+function current_position {
+    mpc -h "$1" | sed -E '2 { s/.* ([0-9]*:[0-9]*)\/.*/\1/; p; }; d'
+}
+
+# clear out our playlist and add remote songs so they match.
+mpc clear
+mpc -h "$1" -f "%file" | mpc add
+
+# Play the playing song
+mpc play `mpc -h "$1" current -f "%position%"`
+
+# seek to the proper part of the song
+mpc seek "`current_location`"
+
+# Pause the remote, we're playing local now
+mpc -h "$1" pause
