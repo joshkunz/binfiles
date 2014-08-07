@@ -6,7 +6,7 @@ FIND_FLAGS=""
 args=`getopt :c $*`
 set -- $args
 for arg; do
-    shift;
+   shift;
     case "$arg" in
         -c) FIND_FLAGS="-maxdepth 1"; 
             break;;
