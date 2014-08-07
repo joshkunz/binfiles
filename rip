@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+abcde -a replaygain,clean -b -o "flac":"--best" -N -x $@
+#abcde -a replaygain,clean -b -o "flac":"--best" -N $@
