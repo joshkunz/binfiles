@@ -41,6 +41,8 @@ DNS. It's there to provide dynamic DNS stuff.
 * psearch - A script that greps your PATH for programs.
 * remounte - One of my drives keeps disconnecting. So instead of fixing the problem I 
 wrote a script to disconnect it and reconnect it.
+* rip - A script that rips a CD using abcde. This script exists because I kept
+  forgetting what options I wanted to specify.
 * rundzen - Pipes status.py into [dzen2][] with some custom font options.
 * status.py - A python script that writes various system information to stdout
 in [dzen2][]'s format for display. The top of it actually has a class for adding in
