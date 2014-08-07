@@ -21,21 +21,9 @@ CUR_LEN=''
 # Set default MPC_FMT if unset
 MPC_FMT=${MPC_FMT:='[[%artist% - ]%title%[ (on %album%)]]|[%file%]'}
 
+# term_width : width
 function term_width {
     stty size | cut -d" " -f2
-}
-
-function tracknum {
-    mpc | sed -E '2 { s/.*#([0-9]*).*/\1/; p; }; d;'
-}
-
-function next_songs {
-    offset=$((`tracknum` + 1))
-    mpc -f "$MPC_FMT" playlist | tail -n "+$offset" | head -n $1
-}
-
-function song_percent {
-    mpc | sed -E '2 { s|.*\(([0-9]+)%\).*|\1|; p; }; d;'
 }
 
 # dupe_char : char -> count -> string
@@ -45,6 +33,39 @@ function dupe_char {
         out="$out$1"
     done
     echo $out
+}
+
+
+# tracknum : num
+function tracknum {
+    mpc | sed -E '2 { s/.*#([0-9]*).*/\1/; p; }; d;'
+}
+
+# next_songs : count -> [string]
+function next_songs {
+    offset=$((`tracknum` + 1))
+    mpc -f "$MPC_FMT" playlist | tail -n "+$offset" | head -n $1
+}
+
+# song_percent : percent
+function song_percent {
+    mpc | sed -E '2 { s|.*\(([0-9]+)%\).*|\1|; p; }; d;'
+}
+
+function playlist_remaining {
+    echo $((`mpc playlist | wc -l` - `tracknum`))
+}
+
+# upcoming_len : string
+function upcoming_len {
+    MPC_FMT="%time%" next_songs `playlist_remaining` | awk -F ':' '
+    { total += ($1 * 60) + $2 }
+    END {
+        sec = total % 60; total /= 60;
+        min = total % 60; total /= 60;
+        hour = total % 60;
+        printf "%d:%d:%d", hour, min, sec;
+    }'
 }
 
 # status_bar : left_pad -> string
@@ -60,6 +81,10 @@ function status_bar {
     echo -n "[${elapsed_string}>${fill_string}]"
 }
 
+function echo_figlet {
+    echo $2 | iconv -f "UTF-8" -t LATIN1//TRANSLIT | figlet -c -k -w $1
+}
+
 function big_title {
     title=`mpc -f "[%title% - %artist%]" | head -n1`
     album=`mpc -f "[(%album%)]" | head -n1`
@@ -67,9 +92,9 @@ function big_title {
         title=`mpc -f "%file%" | head -n1 | sed -E 's$.*/(.*)$\1$'`
     fi
     width="$(term_width)"
-    echo "$title" | figlet -c -k -w $width
+    echo_figlet $width "$title"
     if [ -n "$album" ]; then
-        echo "$album" | figlet -c -k -w $width
+        echo_figlet $width "$album"
     fi
 }
 
@@ -82,7 +107,7 @@ function printcurrent {
     _song_count=`next_songs $PLAYLIST_LEN | wc -l | sed -E 's/[ ]*//g'`
     # Print '~Playlist~' only if there are upcomming songs
     if [ $_song_count -ne 0 ]; then
-        echo $PLAYLIST_SEP
+        echo $PLAYLIST_SEP "(`upcoming_len`)"
     fi
     next_songs $PLAYLIST_LEN
 }
