@@ -74,6 +74,7 @@ My ~/bin/ files
 * [k2pdfopt][]
 * python27 - Symlinks to my local install of python 2.7 for cross-compatibility.
 * [vlcwrap][]
+* [qmv][]
 
   [podcasts]: https://github.com/Joshkunz/podcasts
   [soundrip]: https://github.com/Joshkunz/soundrip
@@ -87,3 +88,4 @@ My ~/bin/ files
   [k2pdfopt]: http://willus.com/k2pdfopt/
   [fileaccess-patch]: https://gist.github.com/Joshkunz/6946483
   [vlcwrap]: https://gist.github.com/Joshkunz/6410613
+  [qmv]: https://gist.github.com/Joshkunz/a6791ecef6ac0d717921
