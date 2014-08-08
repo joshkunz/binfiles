@@ -55,6 +55,7 @@ My ~/bin/ files
   arbitrary information. It's actually kinda cool.
 * strip_audio - BASH script for removing audio from video track.
 * sync\_music - Sync my music library between my laptop and my desktop.
+* sync\_musicr - Sync my music library between my laptop and my remote server.
 * tn - A simple command to open a new not taking file.
 * updatesums - Update a checksums file
 * watcher - A script that runs some command when a file (or directory of files) 

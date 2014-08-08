@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# rsync
+# --progress: Display transfer progress
+#         -r: recursive
+#         -h: human readable
+#         -v: verbose
+#         -t: copy times
+#         -u: update
+
+REMOTE_SRC="ghost:/media/music/"
+LOCAL_SRC="$HOME/Music/Library/"
+
+# Sync local -> remote
+rsync -rhvu --delete --progress --compress --size-only $LOCAL_SRC $REMOTE_SRC 
