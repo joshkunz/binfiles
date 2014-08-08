@@ -50,6 +50,7 @@ My ~/bin/ files
 * rip - A script that rips a CD using abcde. This script exists because I kept
   forgetting what options I wanted to specify.
 * rundzen - Pipes status.py into [dzen2][] with some custom font options.
+* shuff - Runs [ashuffle][] with some common options.
 * status.py - A python script that writes various system information to stdout
   in [dzen2][]'s format for display. The top of it actually has a class for adding in
   arbitrary information. It's actually kinda cool.
