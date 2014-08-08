@@ -2,8 +2,8 @@
 
 # Keymapping
 NEXT=''
-PREV='t'
-TOGGLE_PAUSE='p'
+PREV='z'
+TOGGLE_PAUSE='c'
 QUIT='q'
 FINISH_ALBUM='f'
 
