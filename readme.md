@@ -47,6 +47,7 @@ wrote a script to disconnect it and reconnect it.
 * status.py - A python script that writes various system information to stdout
 in [dzen2][]'s format for display. The top of it actually has a class for adding in
 arbitrary information. It's actually kinda cool.
+* strip_audio - BASH script for removing audio from video track.
 * sync\_music - Sync my music library between my laptop and my desktop.
 * tn - A simple command to open a new not taking file.
 * updatesums - Update a checksums file

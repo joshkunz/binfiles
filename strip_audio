@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+function change_ext () {
+    echo "$1" | sed -E "s/(.*)\.(.*)/\1.$2/"
+}
+
+out_name=`change_ext "$1" wav`
+ffmpeg -i "$1" -map 0:1 "$out_name"
+lame --noreplaygain -V0 "$out_name"
+rm "$out_name"
