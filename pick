@@ -12,13 +12,27 @@ count_known.add_argument("--total", default=0, type=int,
                          help="Total number of items coming in on stdin")
 count_known.add_argument("--get", type=int,
                          help="Number of items to take from the stream (on average)")
+pick_n = total_group.add_argument_group()
+pick_n.add_argument("-n", "--count", type=int, 
+                    help="Buffer stdin and pick exactly 'n' results.")
 args = parser.parse_args()
 
-if args.total:
-    args.alpha = (float(args.get) / args.total)
+if args.count:
+    buf = [line for line in sys.stdin]
+    if args.count > len(buf):
+        sys.stderr.write("Not enough choices to pick "
+                         "{0} values.\n".format(args.count))
+        sys.exit(1)
+    for _ in range(args.count):
+        i = random.randint(0, len(buf) - 1)
+        print buf[i],
+        buf.pop(i)
+else:
+    if args.total:
+        args.alpha = (float(args.get) / args.total)
 
-# Fix the percentage
-args.alpha = 1 - args.alpha
+    # Fix the percentage
+    args.alpha = 1 - args.alpha
 
-for line in sys.stdin:
-    if random.random() > args.alpha: print line,
+    for line in sys.stdin:
+        if random.random() > args.alpha: print line,
