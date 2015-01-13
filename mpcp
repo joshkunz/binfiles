@@ -112,6 +112,13 @@ function printcurrent {
     next_songs $PLAYLIST_LEN
 }
 
+function printstatus {
+    status_line=" `mpc -f "$MPC_FMT" | head -n2 | tail -n1`"
+    left_pad=$(( ${#status_line} + 2 ))
+    bar="$(status_bar $left_pad)"
+    echo -en "\r${status_line} ${bar} \r"
+}
+
 # handle_char : input_char
 function handle_char {
     CUR_TRACK='';
@@ -127,6 +134,7 @@ function handle_char {
 #prevent intial delay
 clear
 printcurrent
+printstatus
 
 # re-draw when the terminal changes size
 trap printcurrent SIGWINCH
@@ -143,8 +151,5 @@ while true; do
         CUR_LEN=`printcurrent | wc -l`
         CUR_TRACK=$track
     fi
-    status_line=" `mpc -f "$MPC_FMT" | head -n2 | tail -n1`"
-    left_pad=$(( ${#status_line} + 2 ))
-    bar="$(status_bar $left_pad)"
-    echo -en "\r${status_line} ${bar} \r"
+    printstatus
 done
