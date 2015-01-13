@@ -69,6 +69,7 @@ My ~/bin/ files
   I don't remember.
 * todo - Gina Trapani's [todo.txt-cli][todo].
 * [youtube-dl][] - The every video downloader.
+* [youtubedown][] - JWZ's better youtube downloader.
 
 ### Symbolic Links
 * [podcasts][]
@@ -94,3 +95,4 @@ My ~/bin/ files
   [vlcwrap]: https://gist.github.com/Joshkunz/6410613
   [qmv]: https://gist.github.com/Joshkunz/a6791ecef6ac0d717921
   [fpick]: https://github.com/Joshkunz/fpick
+  [youtubedown]: http://www.jwz.org/hacks/youtubedown
