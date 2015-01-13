@@ -3,6 +3,9 @@ My ~/bin/ files
 
 ### Scripts I Wrote
 * ashuffle - A script that will continuously enque songs for [mpd][].
+* ddupe - A script that removes duplicate files based on sha1sums (uses dupes).
+* dupes - A script that given a set of hashes and file names, will output
+  duplicate files.
 * dotmake - A script that generates a Makefile to link your dotfiles automatically.
 * finish\_album - Add the tracks from the currently playing song's album
   after the currently playing song. 
