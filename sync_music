@@ -7,10 +7,10 @@
 #         -t: copy times
 #         -u: update
 
-REMOTE_SRC="desktop:~/music/"
+REMOTE_SRC="kit:~/music/"
 LOCAL_SRC="$HOME/Music/Library/"
 
 # Sync remote -> local
-rsync --progress -rhvtu $REMOTE_SRC $LOCAL_SRC 
+rsync --progress --detect-renamed -rhvtu $REMOTE_SRC $LOCAL_SRC 
 # Sync local -> remote
-rsync --progress -rhvtu $LOCAL_SRC $REMOTE_SRC 
+rsync --progress --detect-renamed -rhvtu $LOCAL_SRC $REMOTE_SRC 
