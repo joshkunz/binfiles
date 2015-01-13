@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-${FLAC_OPTS:='-d'}
-${LAME_OPTS:='-h -V 0'}
+FLAC_OPTS=${FLAC_OPTS:='-d'}
+LAME_OPTS=${LAME_OPTS:='-h -V 0'}
 
 echo "Decompressing flac files"
 flac $FLAC_OPTS *.flac
