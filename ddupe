@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+tr '\n' '\0'  \
+    | xargs -0 -n1 sha1sum  \
+    | dupes  \
+    | tr '\n' '\0'  \
+    | xargs -0 -n1 rm
