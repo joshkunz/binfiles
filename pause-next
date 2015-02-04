@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+wait_next () {
+    start_song=`mpc -f "%file%" | head -n1`
+    while [[ "$start_song" == "`mpc -f '%file%' | head -n1`" ]]; do
+        mpc idle player > /dev/null
+    done
+}
+
+wait_next
+mpc pause > /dev/null

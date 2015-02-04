@@ -38,6 +38,7 @@ My ~/bin/ files
   [NearlyFreeSpeach.net][nfsn]'s
   DNS. It's there to provide dynamic DNS stuff.
 * opml2feeds - Converts a .opml file of podcasts to yaml compatible with [podcasts][].
+* pause-next - Bash script to pause MPD after the current song has finished playing.
 * pdf2kindle - A python script that takes a pdf, converts it to a mobile-formatted
   pdf (using [k2pdfopt][]) and then mails that PDF to your kindle email address
   so it get synced onto your kindle. I primarily use this for reading academic
