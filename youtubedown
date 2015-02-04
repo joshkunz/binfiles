@@ -51,7 +51,7 @@ use HTML::Entities;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.449 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.461 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -305,7 +305,8 @@ sub get_url_1($;$$$$$$) {
   my $out;
 
   if ($to_file) {
-    utf8::encode($to_file);   # Unpack wide chars into multi-byte UTF-8.
+    # No, don't do this.
+    # utf8::encode($to_file);   # Unpack wide chars into multi-byte UTF-8.
 
     # Must be 2-arg open for ">-" when $outfile is '-'.
     open ($out, ">$to_file") || error ("$to_file: $!");
@@ -930,6 +931,13 @@ my %ciphers = (
   'en_US-vflsXGZP2/html5player' => 's3 w38 s1 w16 r w20 w69 s2 w15',# 18 Dec 2014
   'en_US-vflw4H1P-/html5player' => 'w8 r s1',                     # 23 Dec 2014
   'en_US-vflmgJnmS/html5player' => 's3 w20 r w34 r s1 r',         # 06 Jan 2015
+  'en_US-vfl86Quee/html5player' => 's3 r w25 w29 r w17 s2 r',     # 15 Jan 2015
+  'en_US-vfl19kCnd/html5player' => 'r w29 s1 r s1 r w4 w28',      # 17 Jan 2015
+  'en_US-vflbHLA_P/html5player' => 'r w20 r w20 s2 r',            # 20 Jan 2015
+  'en_US-vfl_ZlzZL/html5player' => 'w61 r s1 w31 w36 s1',         # 22 Jan 2015
+  'en_US-vflbeV8LH/html5player' => 'w61 r s1 w31 w36 s1',         # 26 Jan 2015
+  'en_US-vflhJatih/html5player' => 's2 w44 r s3 w17 s1',          # 28 Jan 2015
+  'en_US-vflvmwLwg/html5player' => 's2 w44 r s3 w17 s1',          # 29 Jan 2015
 );
 
 
@@ -1324,7 +1332,7 @@ sub scrape_youtube_url($$$$$$) {
   # '&gl=US' .
   # '&hl=en'
 
-  my ($kind, $urlmap, $body, $fmtlist, $rental, $realtime);
+  my ($kind, $kind2, $urlmap, $urlmap2, $body, $fmtlist, $rental, $realtime);
 
   my $retries = 5;
   my $err = undef;
@@ -1335,11 +1343,17 @@ sub scrape_youtube_url($$$$$$) {
     ($http, $head, $body) = get_url ($info_url);
     $err = (check_http_status ($id, $url, $http, 0) ? undef : $http);
 
-    ($kind, $urlmap) = ($body =~ m@&(fmt_url_map)=([^&]+)@si);
+    ($kind, $urlmap) = ($body =~ m@&(fmt_url_map)=([^&]+)@si)
+      unless $urlmap;
     ($kind, $urlmap) = ($body =~ m@&(fmt_stream_map)=([^&]+)@si)	# VEVO
       unless $urlmap;
     ($kind, $urlmap) = ($body =~ m@&(url_encoded_fmt_stream_map)=([^&]+)@si) 
       unless $urlmap;			   # New nonsense seen in Aug 2011
+
+    ($kind2, $urlmap2) = ($body =~ m@&(adaptive_fmts)=([^&]+)@si)	# 2014
+      unless $urlmap2;
+
+    $kind = $kind2 if $kind2;
     print STDERR "$progname: $id: found $kind in JSON\n"
       if ($kind && $verbose > 1);
 
@@ -1417,6 +1431,7 @@ sub scrape_youtube_url($$$$$$) {
   }
 
   $urlmap  = url_unquote ($urlmap);
+  $urlmap2 = url_unquote ($urlmap2) if ($urlmap2);
   $fmtlist = url_unquote ($fmtlist || '');
 
   ($title) = ($body =~ m@&title=([^&]+)@si) unless $title;
@@ -1425,7 +1440,8 @@ sub scrape_youtube_url($$$$$$) {
 
   my $cipher = undef; # initially assume signature is not enciphered
   my $year   = undef; # no published date in get_video_info
-  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $cipher, $title, $year,
+  return scrape_youtube_url_2 ($id, $urlmap, $urlmap2, $fmtlist,
+                               $cipher, $title, $year,
                                $size_p, $list_p, $force_fmt);
 }
 
@@ -1552,24 +1568,33 @@ sub scrape_youtube_url_html($$$$$$) {
   errorI ("$id: no ytplayer.config$oerror")
     unless $args;
 
-  my ($kind, $urlmap) = ($args =~ m@"(fmt_url_map)": "(.*?)"@s);
-  ($kind, $urlmap) = ($args =~ m@"(fmt_stream_map)": "(.*?)"@s)	    # VEVO
+  my ($kind, $kind2, $urlmap, $urlmap2);
+
+  ($kind, $urlmap) = ($args =~ m@"(fmt_url_map)": *"(.*?)"@s)
     unless $urlmap;
-  ($kind, $urlmap) = ($args =~ m@"(url_encoded_fmt_stream_map)": "(.*?)"@s)
+  ($kind, $urlmap) = ($args =~ m@"(fmt_stream_map)": *"(.*?)"@s)  # VEVO
+    unless $urlmap;
+  ($kind, $urlmap) = ($args =~ m@"(url_encoded_fmt_stream_map)": *"(.*?)"@s)
     unless $urlmap;			   # New nonsense seen in Aug 2011
+
+  ($kind2, $urlmap2) = ($args =~ m@"(adaptive_fmts)": *"(.*?)"@s)
+    unless $urlmap2;
+
   if (! $urlmap) {
     if ($body =~ m/This video has been age-restricted/s) {
       error ("$id: enciphered but age-restricted$oerror");
     }
     errorI ("$id: no fmt_url_map$oerror");
   }
+
+  $kind = $kind2 if $kind2;
   print STDERR "$progname: $id: found $kind in HTML\n"
     if ($kind && $verbose > 1);
 
   my ($cipher) = ($body =~ m@/jsbin\\?/html5player-(.+?)\.js@s);
   $cipher =~ s@\\@@gs if $cipher;
 
-  my ($fmtlist) = ($args =~ m@"fmt_list": "(.*?)"@s);
+  my ($fmtlist) = ($args =~ m@"fmt_list": *"(.*?)"@s);
   $fmtlist =~ s/\\//g if $fmtlist;
 
   $fmtlist = url_unquote ($fmtlist || '');
@@ -1581,7 +1606,8 @@ sub scrape_youtube_url_html($$$$$$) {
     if ($body =~ m@<SPAN \b [^<>]* ID=[\'\"]eow-date[\'\"] [^<>]* >
                    [^<>]* \b ( \d{4} ) \s* <@gsix);
 
-  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $cipher, $title, $year,
+  return scrape_youtube_url_2 ($id, $urlmap, $urlmap2, $fmtlist,
+                               $cipher, $title, $year,
                                $size_p, $list_p, $force_fmt);
 }
 
@@ -1589,8 +1615,9 @@ sub scrape_youtube_url_html($$$$$$) {
 # Parses the given fmt_url_map to determine the preferred URL of the
 # underlying Youtube video.
 #
-sub scrape_youtube_url_2($$$$$$$$$$) {
-  my ($id, $urlmap, $fmtlist, $cipher, $title, $year, $size_p, $list_p,
+sub scrape_youtube_url_2($$$$$$$$$$$) {
+  my ($id, $urlmap, $urlmap2, $fmtlist, $cipher,
+      $title, $year, $size_p, $list_p,
       $force_fmt) = @_;
 
   print STDERR "\n$progname: urlmap:\n" if ($verbose > 3);
@@ -1607,10 +1634,13 @@ sub scrape_youtube_url_2($$$$$$$$$$) {
     $fmtsizes{$fmt} = $size;
   }
 
+  # Use both url_encoded_fmt_stream_map and adaptive_fmts.
+  $urlmap .= ",$urlmap2" if $urlmap2;
+
   foreach (split (/,/, $urlmap)) {
     # Format used to be: "N|url,N|url,N|url"
     # Now it is: "url=...&quality=hd720&fallback_host=...&type=...&itag=N"
-    my ($k, $v, $e, $sig, $sig2);
+    my ($k, $v, $e, $size, $sig, $sig2);
     if (m/^\d+\|/s) {
       ($k, $v) = m/^(.*?)\|(.*)$/s;
     } elsif (m/^[a-z][a-z\d_]*=/s) {
@@ -1621,10 +1651,16 @@ sub scrape_youtube_url_2($$$$$$$$$$) {
       ($k) = m/\bitag=(\d+)/s;
       ($v) = m/\burl=([^&]+)/s;
       $v = url_unquote($v) if ($v);
+      ($size) = m/\bsize=(\d+x\d+)/s;
 
       my ($q) = m/\bquality=([^&]+)/s;
       my ($t) = m/\btype=([^&]+)/s;
-      $e = "\t$q, $t" if ($q && $t);
+      $t = url_unquote($t) if ($t);
+      if ($q && $t) {
+        $e = "\t$q, $t";
+      } elsif ($t) {
+        $e = $t;
+      }
       $e = url_unquote($e) if ($e);
     }
 
@@ -1634,17 +1670,17 @@ sub scrape_youtube_url_2($$$$$$$$$$) {
     errorI ("$id: unparsable urlmap entry: no itag: $_") unless ($k);
     errorI ("$id: unparsable urlmap entry: no url: $_")  unless ($v);
 
-    my ($ct) = ($e =~ m@\bvideo/(?:x-)?([a-z\d]+)\b@si);
+    my ($ct) = ($e =~ m@\b(?:video|audio)/(?:x-)?([a-z\d]+)\b@si);
 
-    my $s = $fmtsizes{$k};
-    $s = '?x?' unless $s;
+    $size = $fmtsizes{$k} unless $size;
+    $size = '?x?' unless $size;
 
     $urlmap{$k} = $v;
     $urlct{$k}  = $ct;
     $urlsig{$k} = [ $sig2 ? 1 : 0, $sig || $sig2 ];
 
     push @urlmap, $k;
-    print STDERR "\t\t$k $s\t$v$e\n" if ($verbose > 3);
+    print STDERR "\t\t$k $size\t$v$e\n" if ($verbose > 3);
   }
 
   print STDERR "\n" if ($verbose > 3);
@@ -1700,16 +1736,33 @@ sub scrape_youtube_url_2($$$$$$$$$$) {
   # 101 WebM vp8   870 Kbps  854x480 stereo       Vorbis ?Kbps  2ch 44.10 KHz
   # 102 WebM vp8   864 Kbps 1280x720 stereo       Vorbis ?Kbps  2ch 44.10 KHz
   # 120  FLV AVC     ?      1280x720              AAC   ? Kbps  ?       ? KHz
-  # 133 MP4 h.264    ?          240p       ? fps     video only
-  # 134 MP4 h.264    ?          360p       ? fps     video only
+  # 133 MP4 h.264    ?       426x240       ? fps     video only
+  # 134 MP4 h.264    ?       640x360       ? fps     video only
   # 135 MP4 h.264    ?          480p       ? fps     video only
   # 136 MP4 h.264    ?      1280x720       ? fps     video only
   # 137 MP4 h.264    ?     1920x1080       ? fps     video only
-  # 138 ?
+  # 138 MP4 h.264    ?     3840x2160       ? fps     video only
   # 139 MP4 h.264    ?    audio only               ?     "low"  ?       ? KHz
-  # 140 MP4 h.264    ?    audio only               ?     "med"  ?       ? KHz
+  # 140 MP4 h.264    ?    audio only              MP4a 128Kbps  2ch 44.10 KHz
   # 141 MP4 h.264    ?    audio only               ?     "high" ?       ? KHz
-  # 160 MP4 h.264    ?          144p       ? fps   ?    ? Kbps  ?       ? KHz
+  # 160 MP4 h.264    ?       256x144       ? fps  AVC1  ? Kbps  ?       ? KHz
+  # 171 WebM         ?    audio only              Vorbis ?Kbps  ?       ? KHz
+  # 242 WebM vp9     ?     426x240         ? fps     video only
+  # 243 WebM vp9     ?     640x360         ? fps     video only
+  # 244 WebM vp9     ?     854x480         ? fps     video only
+  # 247 WebM vp9     ?     1280x720        ? fps     video only
+  # 248 WebM vp9     ?     1920x1080       ? fps     video only
+  # 249 WebM Opus    ?    audio only              Vorbis        ?       ? KHz
+  # 250 WebM Opus    ?    audio only              Vorbis        ?       ? KHz
+  # 251 WebM Opus    ?    audio only              Vorbis        ?       ? KHz
+  # 264 MP4 h.264    ?     2560x1440       ? fps     video only
+  # 266 MP4 h.264    ?     3840x2160       ? fps     video only
+  # 271 WebM vp9     ?     2560x1440       ? fps     video only
+  # 272 WebM vp9     ?     3840x2160       ? fps     video only
+  # 278 MP4 h.264    ?       256x144       ? fps     video only
+  # 298 MP4 h.264    ?      1280x720       ? fps     video only
+  # 299 MP4 h.264    ?     1920x1080       ? fps     video only
+  # 313 WebM vp9     ?     3840x2160       ? fps     video only
   #
   # fmt=38/37/22 are only available if upload was that exact resolution.
   #
@@ -1721,6 +1774,13 @@ sub scrape_youtube_url_2($$$$$$$$$$) {
   # The MP4 versions are higher resolution (e.g. 37=1080p but 45=720p).
   #
   # The stereo/3D formats 46, 82-84, 100-102 first spotted in Sep/Nov 2011.
+  #
+  # As of Jan 2015, Youtube seems to have stopped serving format 37 (1080p),
+  # but is instead serving 137 (1080p, video only).  It seems that to
+  # download anything of 1080p or higher, you are expected to download a
+  # video-only and an audio-only stream and mux them on the client side.
+  # This is insane.  I think that "urlmap" contains the muxed videos and
+  # "adaptive_fmts" contains the unmuxed ones.
   #
   # For debugging this stuff, use "--fmt N" to force downloading of a
   # particular format or "--fmt all" to grab them all.
@@ -1758,15 +1818,30 @@ sub scrape_youtube_url_2($$$$$$$$$$) {
   #   http://www.youtube.com/watch?v=WQzVhOZnku8
   #   3-Sep-2014: First sighting of a 24/7 realtime stream.
   #
+  #   http://www.youtube.com/watch?v=gTIK2XawLDA
+  #   22-Jan-2015: DNA Lounge 24/7 live stream, 640x360.
+  #
+  #   http://www.youtube.com/watch?v=hHKJ5eE7I1k
+  #   22-Jan-2015: 2K video. Formats 36, 136, 137, 138.
+  #
+  #   http://www.youtube.com/watch?v=udAL48P5NJU
+  #   22-Jan-2015: 4K video. Formats 36, 136, 137, 138, 266, 313.
+  #
   # The table on http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
   # disagrees with the above to some extent.  Which is more accurate?
+  # (Oh great, they deleted that table from Wikipedia. Lovely.)
   #
 
-  my %known_formats  = (   0 => 1,   5 => 1,   6 => 1,  13 => 1,  17 => 1,
-                          18 => 1,  22 => 1,  34 => 1,  35 => 1,  36 => 1,
-                          37 => 1,  38 => 1,  43 => 1,  44 => 1,  45 => 1,
-                          46 => 1,  59 => 1,  78 => 1,  82 => 1,  83 => 1,
-                          84 => 1, 85 => 1,  100 => 1, 101 => 1, 102 => 1,
+  my %known_formats  = (  0 => 1,   5 => 1,   6 => 1,  13 => 1,  17 => 1,
+                         18 => 1,  22 => 1,  34 => 1,  35 => 1,  36 => 1,
+                         37 => 1,  38 => 1,  43 => 1,  44 => 1,  45 => 1,
+                         46 => 1,  59 => 1,  78 => 1,  82 => 1,  83 => 1,
+                         84 => 1,  85 => 1, 100 => 1, 101 => 1, 102 => 1,
+                        133 => 1, 134 => 1, 135 => 1, 136 => 1, 137 => 1,
+                        138 => 1, 140 => 1, 160 => 1, 171 => 1, 242 => 1,
+                        243 => 1, 244 => 1, 247 => 1, 248 => 1, 249 => 1,
+                        250 => 1, 251 => 1, 264 => 1, 266 => 1, 271 => 1,
+                        272 => 1, 278 => 1, 298 => 1, 299 => 1, 313 => 1,
                        );
   my @preferred_fmts = ( 38,  # huge mp4
                          37,  # 1080 mp4
@@ -1854,6 +1929,11 @@ sub scrape_youtube_url_2($$$$$$$$$$) {
      ($size) = ($head =~ m@^Content-Length: \s* (\d+) @mix)
        unless $size;
 
+  if ($ct eq 'application/octet-stream') {  # WTF, Youtube.
+    $ct = "video/" . $urlct{$fmt}
+      if ($fmt && $urlct{$fmt});
+  }
+
   errorI ("couldn't find video for $url") unless $ct;
 
   return ($ct, $url, $title, $year, $w, $h, $size);
@@ -1891,7 +1971,7 @@ sub scrape_vimeo_url($$) {
   my ($http, $head, $body) = get_url ($info_url, $referer, $hdrs);
 
   if (!check_http_status ($id, $info_url, $http, 0)) {
-    my ($err) = ($body =~ m@\"display_message\":\"(.*?)\"[,\}]@si);
+    my ($err) = ($body =~ m@\"display_message\": *\"(.*?)\"[,\}]@si);
     $err = 'unknown error' unless $err;
     $err =~ s@<[^<>]*>@@gsi;
     if ($err =~ m/private[+\s]video|proper[+\s]permission/si) {
@@ -1975,19 +2055,19 @@ sub scrape_vimeo_private($$) {
     error ("$id: scraping private video failed");
   }
 
-  my ($title) = ($body =~ m@"title":"(.*?)",@s);
+  my ($title) = ($body =~ m@"title": *"(.*?)",@s);
      ($title) = ($body =~ m@<title>\s*([^<>]+?)\s*</title>@si) unless $title;
 
-  my ($sig)   = ($body  =~ m@"signature":"([a-fA-F\d]+)"@s);
-  my ($time)  = ($body  =~ m@"timestamp":"?(\d+)"?@s);
-  my ($files) = ($body  =~ m@("hd":{.*?})@s);
-     ($files) = ($body  =~ m@("sd":{.*?})@s) unless $files;
-     ($files) = ($body  =~ m@"files":{(.*?)\]}@s) unless $files;
+  my ($sig)   = ($body  =~ m@"signature" *:"([a-fA-F\d]+)"@s);
+  my ($time)  = ($body  =~ m@"timestamp" *:"?(\d+)"?@s);
+  my ($files) = ($body  =~ m@("hd" *:{.*?})@s);
+     ($files) = ($body  =~ m@("sd" *:{.*?})@s) unless $files;
+     ($files) = ($body  =~ m@"files" *:{(.*?)\]}@s) unless $files;
 
   errorI ("$id: vimeo HTML unparsable") unless ($sig && $time && $files);
 
   # Have seen "hd", "sd" and "mobile" for $qual.  Hopefully they are sorted.
-  my ($codec, $qual) = ($files =~ m@^\"([^\"]+)\":[\[\{]\"([^\"]+)\"@si);
+  my ($codec, $qual) = ($files =~ m@^\"([^\"]+)\" *:[\[\{]\"([^\"]+)\"@si);
 
   errorI ("$id: vimeo HTML unparsable: no qual/codec") unless ($qual && $codec);
 
@@ -2001,7 +2081,7 @@ sub scrape_vimeo_private($$) {
 
   # Hmm, let's just try to use this one directly.
   # Sometimes the "sd" and "mobile" entries work but "hd" doesn't, WTF.
-  $url = $1 if ($files =~ m@"url":"([^\"]+)"@s);
+  $url = $1 if ($files =~ m@"url" *:"([^\"]+)"@s);
 
   my $ct = ($codec =~ m@mov@si  ? 'video/quicktime' :
             $codec =~ m@flv@si  ? 'video/flv' :
@@ -2323,7 +2403,8 @@ sub file_exists_with_suffix($) {
   my ($f) = @_;
   foreach my $ext (@video_extensions) {
     my $ff = "$f.$ext";
-    utf8::encode($ff);   # Unpack wide chars into multi-byte UTF-8.
+    # No, don't do this.
+    # utf8::encode($ff);   # Unpack wide chars into multi-byte UTF-8.
     return ($ff) if -f ($ff);
   }
   return undef;
@@ -2610,6 +2691,7 @@ sub download_video_url($$$$$$$$) {
   my $file = "$title$suf";
   if    ($ct =~ m@/(x-)?flv$@si)  { $file .= '.flv';  }   # proper extensions
   elsif ($ct =~ m@/(x-)?webm$@si) { $file .= '.webm'; }
+  elsif ($ct =~ m@/(x-)?3gpp$@si) { $file .= '.3gpp'; }
   elsif ($ct =~ m@/quicktime$@si) { $file .= '.mov';  }
   else                            { $file .= '.mp4';  }
 
