@@ -9,15 +9,20 @@
 # software for any purpose.  It is provided "as is" without express or 
 # implied warranty.
 #
-# Given a YouTube or Vimeo URL, downloads the corresponding MP4 file.
+# Given a YouTube, Vimeo or Tumblr URL, downloads the corresponding MP4 file.
 # The name of the file will be derived from the title of the video.
 #
 #  --title "STRING"  Use this as the title instead.
-#  --progress        Show a textual progress bar for downloads.
+#  --prefix "STRING" Prepend the title with this.
 #  --suffix          Append the video ID to each written file name.
+#  --progress        Show a textual progress bar for downloads.
+#
 #  --size            Instead of downloading it all, print video dimensions.
 #		     This requires "ffmpeg".
+#
 #  --list            List the underlying URLs of a playlist.
+#  --list --list     List IDs and titles of a playlist.
+#  --size --size     List the sizes of each video of a playlist.
 #
 #  --no-mux          Only download pre-muxed videos, instead of sometimes
 #                    downloading separate audio and video files, then combining
@@ -59,7 +64,7 @@ use HTML::Entities;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.526 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.598 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -776,8 +781,8 @@ sub write_file_metadata_url($$$) {
 # Downloads the first 380 KB of the URL, then runs ffmpeg to
 # find out the dimensions of the video.
 #
-sub video_url_size($$$;$) {
-  my ($id, $title, $url, $ct) = @_;
+sub video_url_size($$;$) {
+  my ($id, $url, $ct) = @_;
 
   my $tmp = $ENV{TMPDIR} || "/tmp";
   my $ext = content_type_ext ($ct || '');
@@ -1089,6 +1094,55 @@ my %ciphers = (
   'en_US-vflCiLqoq/html5player' => '16511 w12 w18 s1 w60',        # 07 Apr 2015
   'en_US-vflOOhwh5/html5player' => '16518 r w1 r w17 s2 r',       # 09 Apr 2015
   'en_US-vflUPVjIh/html5player' => '16511 w12 w18 s1 w60',        # 09 Apr 2015
+  'en_US-vfleI-biQ/html5player' => '16519 w39 s3 r s1 w36',       # 13 Apr 2015
+  'en_US-vflWLYnud/html5player' => '16538 r w41 w65 w11 r',       # 14 Apr 2015
+  'en_US-vflCbhV8k/html5player' => '16538 r w41 w65 w11 r',       # 15 Apr 2015
+  'en_US-vflXIPlZ4/html5player' => '16538 r w41 w65 w11 r',       # 16 Apr 2015
+  'en_US-vflJ97NhI/html5player' => '16538 r w41 w65 w11 r',       # 20 Apr 2015
+  'en_US-vflV9R5dM/html5player' => '16538 r w41 w65 w11 r',       # 21 Apr 2015
+  'en_US-vflkH_4LI/html5player' => '16546 w13 s1 w4 s2 r s2 w25', # 22 Apr 2015
+  'en_US-vflfy61br/html5player' => '16546 w13 s1 w4 s2 r s2 w25', # 23 Apr 2015
+  'en_US-vfl1r59NI/html5player' => '16548 r w42 s1 r w29 r w2 s2 r',# 28 Apr 2015
+  'en_US-vfl98hSpx/html5player' => '16548 r w42 s1 r w29 r w2 s2 r',# 29 Apr 2015
+  'en_US-vflheTb7D/html5player' => '16554 r s1 w40 s2 r w6 s3 w60',# 30 Apr 2015
+  'en_US-vflnbdC7j/html5player' => '16555 w52 w25 w62 w51 w2 s2 r s1',# 04 May 2015
+  'new-en_US-vfladkLoo/html5player-new' => '16555 w52 w25 w62 w51 w2 s2 r s1',# 05 May 2015
+  'en_US-vflTjpt_4/html5player' => '16560 w14 r s1 w37 w61 r',    # 07 May 2015
+  'en_US-vflN74631/html5player' => '16560 w14 r s1 w37 w61 r',    # 08 May 2015
+  'en_US-vflj7H3a2/html5player' => '16560 w14 r s1 w37 w61 r',    # 12 May 2015
+  'en_US-vflQbG2p4/html5player' => '16560 w14 r s1 w37 w61 r',    # 12 May 2015
+  'en_US-vflHV7Wup/html5player' => '16560 w14 r s1 w37 w61 r',    # 13 May 2015
+  'en_US-vflCbZ69_/html5player' => '16574 w3 s3 w45 r w3 w2 r w13 r',# 20 May 2015
+  'en_US-vflugm_Hi/html5player' => '16574 w3 s3 w45 r w3 w2 r w13 r',# 21 May 2015
+  'en_US-vfl3tSKxJ/html5player' => '16577 w37 s3 w57 r w5 r w13 r',# 26 May 2015
+  'en_US-vflE8_7k0/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 28 May 2015
+  'en_US-vflmxRINy/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 01 Jun 2015
+  'en_US-vflQEtHy6/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 02 Jun 2015
+  'en_US-vflRqg76I/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 03 Jun 2015
+  'en_US-vfloIm75c/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 04 Jun 2015
+  'en_US-vfl0JH6Oo/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 08 Jun 2015
+  'en_US-vflHvL0kQ/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 09 Jun 2015
+  'new-en_US-vflGBorXT/html5player-new' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 10 Jun 2015
+  'en_US-vfl4Y6g4o/html5player' => '16582 r w41 s3 w69 s1 w66 r w27 s2',# 11 Jun 2015
+  'en_US-vflKAbZ28/html5player' => '16597 s3 r s2',               # 15 Jun 2015
+  'en_US-vflM5YBLT/html5player' => '16602 s2 w25 w14 s1 r',       # 17 Jun 2015
+  'en_US-vflnSSUZV/html5player' => '16603 w20 s2 w11 s3 r s1 w2 w15',# 18 Jun 2015
+  'en_US-vfla1HjWj/html5player' => '16603 w20 s2 w11 s3 r s1 w2 w15',# 22 Jun 2015
+  'en_US-vflPcWTEd/html5player' => '16603 w20 s2 w11 s3 r s1 w2 w15',# 23 Jun 2015
+  'en_US-vfljL8ofl/html5player' => '16609 w29 r s1 r w59 r w45',  # 25 Jun 2015
+  'en_US-vflUXoyA8/html5player' => '16609 w29 r s1 r w59 r w45',  # 29 Jun 2015
+  'en_US-vflzomeEU/html5player' => '16609 w29 r s1 r w59 r w45',  # 30 Jun 2015
+  'en_US-vflihzZsw/html5player' => '16617 s3 r s3 w17',           # 07 Jul 2015
+  'en_US-vfld2QbH7/html5player' => '16623 w58 w46 s1 w9 r w54 s2 r w55',# 08 Jul 2015
+  'en_US-vflVsMRd_/html5player' => '16623 w58 w46 s1 w9 r w54 s2 r w55',# 09 Jul 2015
+  'en_US-vflp6cSzi/html5player' => '16625 w52 w23 s1 r s2 r s2 r',# 16 Jul 2015
+  'en_US-vflr_ZqiK/html5player' => '16625 w52 w23 s1 r s2 r s2 r',# 20 Jul 2015
+  'en_US-vflDv401v/html5player' => '16636 r w68 w58 r w28 w44 r', # 21 Jul 2015
+  'en_US-vflP7pyW6/html5player' => '16636 r w68 w58 r w28 w44 r', # 22 Jul 2015
+  'en_US-vfly-Z1Od/html5player' => '16636 r w68 w58 r w28 w44 r', # 23 Jul 2015
+  'en_US-vflSxbpbe/html5player' => '16636 r w68 w58 r w28 w44 r', # 27 Jul 2015
+  'en_US-vflGx3XCd/html5player' => '16636 r w68 w58 r w28 w44 r', # 29 Jul 2015
+  'new-en_US-vflIgTSdc/html5player-new' => '16648 r s2 r w43 w41 w8 r w67 r',# 03 Aug 2015
 );
 
 
@@ -1492,6 +1546,11 @@ sub youtube_parse_urlmap($$$) {
       $e = url_unquote($e) if ($e);
     }
 
+    error ("$id: can't download RTMPE DRM videos")
+      # There was no indiciation in get_video_info that this is an RTMPE
+      # stream, so it took us several retries to fail here.
+      if (!$v && $urlmap =~ m/\bconn=rtmpe%3A/s);
+
     errorI ("$id: unparsable urlmap entry: no itag: $_") unless ($k);
     errorI ("$id: unparsable urlmap entry: no url: $_")  unless ($v);
 
@@ -1749,6 +1808,12 @@ sub load_youtube_formats($$) {
     ($kind2, $urlmap2) = ($body =~ m@&(adaptive_fmts)=([^&]+)@si)	# 2014
       unless $urlmap2;
 
+    if (!$err &&
+        $body =~ m/\bstatus=fail\b/si &&
+        $body =~ m/\breason=([^?&]+)/si) {
+      $err = url_unquote ($1);
+    }
+
     ($title)    = ($body =~ m@&title=([^&]+)@si) unless $title;
     ($rental)   = ($body =~ m@&ypc_video_rental_bar_text=([^&]+)@si);
     ($realtime) = ($body =~ m@&(?:livestream|live_playback|hlsvp)=([^&]+)@si);
@@ -1794,10 +1859,24 @@ sub load_youtube_formats($$) {
   $err = "can't download RTMPE DRM videos"
     if (!$err && $rtmpe_p);
 
-  if ($verbose <= 0 && $err && $err =~ m/livestream|rtmpe/sio) {
+  if ($verbose <= 0 && $err &&
+      $err =~ m/livestream|rtmpe|sign in to view/sio) {
     # With --quiet, just silently ignore livestream failures,
     # for "youtubefeed".
     exit (0);
+  }
+
+  if ($err && $verbose <= 0) {
+    my $blocked_re = join ('|',
+                         ('(available|blocked it) in your country',
+                          'copyright (claim|grounds)',
+                          'removed by the user',
+                          'is not available'));
+    if ($err =~ m/$blocked_re/sio) {
+      # With --quiet, just silently ignore country-locked video failures,
+      # for "youtubefeed".
+      exit (0);
+    }
   }
 
   error ("$progname: $id: $err")
@@ -1848,7 +1927,14 @@ sub load_youtube_formats($$) {
 
     # We couldn't get a URL map out of the info URL.
     # Scrape the HTML instead.
+    #
     #### Does this even happen any more, now that we use "sts"?
+    #
+    # Answer: yes, it happens at least for RTMPE -- but in that
+    # case we fail out anyway.  Does it happen any more in any
+    # *successful* case?  I don't know.
+
+    errorI("html scraping still happens");
 
     if ($body =~ m/private[+\s]video|video[+\s]is[+\s]private/si) {
       error ("$id: private video");  # scraping won't work.
@@ -1933,6 +2019,9 @@ sub load_vimeo_formats($$) {
   #   https://vimeo.com/83711059
   #     The HTML page is 404, but the simple info URL works,
   #     and the video is downloadable anyway!
+  #   https://vimeo.com/209
+  #     Yes, this is a real video.  No "h264" in "files" metadata,
+  #     only .flv as "vp6".
 
   ($http, $head, $body) = get_url ($info_url, $referer);
 
@@ -1945,8 +2034,10 @@ sub load_vimeo_formats($$) {
     $http = '';  # 200
   }
 
-  my ($title) = ($body =~ m@   "title" : \s* " (.+?) " @six);
-  my ($files) = ($body =~ m@ { "h264"  : \s* \{ ( .+? \} ) \} , @six);
+  my ($title)  = ($body =~ m@   "title" : \s* " (.+?) " @six);
+  my ($files0) = ($body =~ m@ { "h264"  : \s* \{ ( .+? \} ) \} , @six);
+  my ($files1) = ($body =~ m@ { "vp6"   : \s* \{ ( .+? \} ) \} , @six);
+  my $files    = ($files0 || '') . ($files1 || '');
 
   # Sometimes we get empty-ish data for "Private Video", but HTTP 200.
   $err = "No video info (Private?)"
@@ -1978,9 +2069,16 @@ sub load_vimeo_formats($$) {
         unless ($fmt && $url2 && $w && $h);
       print STDERR "$progname: $fmt: ${w}x$h: $url2\n"
         if ($verbose > 2);
+
+      my ($ext) = ($url2 =~ m@^[^?&]+\.([^./?&]+)([?&]|$)@s);
+      $ext = 'mp4' unless $ext;
+      my $ct = ($ext =~ m/^(flv|webm|3gpp?)$/s ? "video/$ext" :
+                $ext =~ m/^(mov)$/s            ? 'video/quicktime' :
+                'video/mpeg');
+
       my %v = ( fmt  => $i,
                 url  => $url2,
-                content_type => 'video/mpeg',
+                content_type => $ct,
                 w    => $w,
                 h    => $h,
                 # size => undef,
@@ -1995,19 +2093,110 @@ sub load_vimeo_formats($$) {
 }
 
 
+# Returns a hash of: 
+#  [ title: "T",
+#    year: "Y",
+#    N: [ ...video info... ],
+#    M: [ ...video info... ], ... ]
+#
+sub load_tumblr_formats($$) {
+  my ($id, $url) = @_;
+
+  my ($host) = ($url =~ m@^https?://([^/]+)@si);
+  my $info_url = "http://api.tumblr.com/v2/blog/$host/posts/video?id=$id";
+
+  my ($http, $head, $body) = get_url ($info_url);
+  check_http_status ($id, $url, $http, 1);
+
+  $body =~ s/^.* "posts" : \[ //six;
+
+  my ($title) = ($body =~ m@ "slug" : \s* " (.+?) " @six);
+  my ($year)  = ($body =~ m@ "date" : \s* " (\d{4})- @six);
+
+  $title = munge_title (html_unquote ($title || ''));
+
+  my $fmts = {};
+
+  $body =~ s/^.* "player" : \[ //six;
+
+  my $i = 0;
+  foreach my $chunk (split (/\},/, $body)) {
+    my ($e) = ($chunk =~ m@ "embed_code" : \s* " (.*?) " @six);
+
+    $e =~ s/\\n/\n/gs;
+    $e =~ s/ \\[ux] { ([a-z0-9]+)   } / unihex($1) /gsexi;  # \u{XXXXXX}
+    $e =~ s/ \\[ux]   ([a-z0-9]{4})   / unihex($1) /gsexi;  # \uXXXX
+    $e =~ s/\\//gs;
+
+    my ($w)   = ($e =~ m@width=['"]?(\d+)@si);
+    my ($h)   = ($e =~ m@height=['"]?(\d+)@si);
+    my ($src) = ($e =~ m@<source\b(.*?)>@si);
+    my ($v)   = ($src =~ m@src=['"](.*?)['"]@si);
+    my ($ct)  = ($src =~ m@type=['"](.*?)['"]@si);
+
+    my %v = ( fmt  => $i,
+              url  => $v,
+              content_type => $ct,
+              w    => $w,
+              h    => $h,
+              # size => undef,
+              # abr  => undef,
+            );
+    $fmts->{$i} = \%v;
+    $i++;
+  }
+
+  $fmts->{title} = $title;
+  $fmts->{year}  = $year;
+
+  return $fmts;
+}
+
+
+
 # Return the year at which this video was uploaded.
 #
 sub get_youtube_year($) {
   my ($id) = @_;
-  my $data_url = ("http://gdata.youtube.com/feeds/api/videos/$id?v=2" .
-                  "&fields=published" .
-                  "&safeSearch=none" .
-                  "&strict=true");
+
+  # 13-May-2015: https://www.youtube.com/watch?v=99lDR6jZ8yE (Lamb)
+  # HTML says this:
+  #     <strong class="watch-time-text">Uploaded on Oct 28, 2011</strong>
+  # But /feeds/api/videos/99lDR6jZ8yE?v=2 says:
+  #     <updated>     2015-05-13T21:13:28.000Z
+  #     <published>   2015-04-17T15:23:22.000Z
+  #     <yt:uploaded> 2015-04-17T15:23:22.000Z
+  #
+  # And one of my own: https://www.youtube.com/watch?v=HbN4wBJMOuE
+  #     <strong class="watch-time-text">Published on Sep 20, 2014</strong>
+  #     <published>   2015-04-17T15:23:22.000Z
+  #     <updated>     2015-05-16T18:48:26.000Z
+  #     <yt:uploaded> 2015-04-17T15:23:22.000Z
+  #
+  # In fact, I uploaded that on Sep 20, 2014, and when I did I set the
+  # Advanced Settings / Recording Date to Sep 14, 2014.  Some time in
+  # 2015, I edited the description text.  I have no theory for why the
+  # "published" and "updated" dates are different and are both 2015.
+  #
+  # So, let's scrape the HTML isntead of using the API.
+  #
+  # (Actually, we don't have a choice now anyway, since they turned off
+  # the v2 API in June 2015, and the v3 API requires authentication.)
+
+  # my $data_url = ("http://gdata.youtube.com/feeds/api/videos/$id?v=2" .
+  #                 "&fields=published" .
+  #                 "&safeSearch=none" .
+  #                 "&strict=true");
+  my $data_url = "http://www.youtube.com/watch?v=$id";
+
   my ($http, $head, $body) = get_url ($data_url);
   return undef unless check_http_status ($id, $data_url, $http, 0);
 
-  my ($year, $mon, $dotm, $hh, $mm, $ss) = 
-    ($body =~ m@<published>(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)@si);
+  # my ($year, $mon, $dotm, $hh, $mm, $ss) = 
+  #   ($body =~ m@<published>(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)@si);
+
+  my ($year) = ($body =~ m@\bclass="watch-time-text">[^<>]+\b(\d{4})</@s);
+
   return $year;
 }
 
@@ -2035,19 +2224,22 @@ sub pick_download_format($$$$$) {
     my @all = ();
     foreach my $k (keys %$fmts) {
       next if ($k eq 'title');
+      next if ($k eq 'year');
       push @all, $k;
     }
     return sort { $a <=> $b } @all;
   }
 
-  if ($site eq 'vimeo') {
-    # On Vimeo, just pick the entry with the largest size and/or resolution.
+  if ($site eq 'vimeo' ||
+      $site eq 'tumblr') {
+    # On Vimeo and Tumblr, just pick the entry with the largest size
+    # and/or resolution.
 
     # No muxing needed on Vimeo
     $force_fmt = undef if ($force_fmt && $force_fmt eq 'mux');
 
     if (defined($force_fmt)) {
-      error ("vimeo --fmt must be digits: $force_fmt")
+      error ("$site --fmt must be digits: $force_fmt")
         unless ($force_fmt =~ m/^\d+$/s);
       foreach my $k (keys %$fmts) {
         if ($k eq $force_fmt) {
@@ -2064,6 +2256,7 @@ sub pick_download_format($$$$$) {
     my $best = undef;
     foreach my $k (keys %$fmts) {
       next if ($k eq 'title');
+      next if ($k eq 'year');
       $best = $k
         if (!defined($best) ||
             (($fmts->{$k}->{size} || 0) > ($fmts->{$best}->{size} || 0) ||
@@ -2075,6 +2268,8 @@ sub pick_download_format($$$$$) {
                  $fmts->{$best}->{h} . ")\n"
       if ($verbose > 1);
     return $best;
+  } elsif ($site ne 'youtube') {
+    errorI ("unknown site $site");
   }
 
   errorI ("$id: unrecognized site: $url") unless ($site eq 'youtube');
@@ -2235,10 +2430,7 @@ sub pick_download_format($$$$$) {
   #   non-HD version.
   #
   #   http://www.youtube.com/watch?v=Ol61WOSzLF8
-  #   10-Mar-2015: locked with RTMPE DRM
-  #   There's a generic rtmpe: URL in "conn" and a bunch of options
-  #   in "stream", but I don't know how to put those together into
-  #   an invocation of "rtmpdump" that does anything at all.
+  #   10-Mar-2015: formerly RTMPE but 14-Apr-2015 no longer
   #
   #   http://www.youtube.com/watch?v=1ltcDfZMA3U  Maps
   #   29-Mar-2015: formerly playable in US region, but no longer
@@ -2285,6 +2477,14 @@ sub pick_download_format($$$$$) {
   #
   #   http://www.youtube.com/watch?v=UlS_Rnb5WM4
   #   28-Mar-2015: non-embeddable (Pogo)
+  #
+  #   http://www.youtube.com/watch?v=JYEfJhkPK7o
+  #   14-Apr-2015: RTMPE DRM
+  #   get_video_info fails with "This video contains content from Mosfilm,
+  #   who has blocked it from display on this website.  Watch on Youtube."
+  #   There's a generic rtmpe: URL in "conn" and a bunch of options in
+  #   "stream", but I don't know how to put those together into an
+  #   invocation of "rtmpdump" that does anything at all.
 
 
   # Divide %known_formats into muxed, video-only and audio-only lists.
@@ -2501,10 +2701,37 @@ sub munge_title($) {
 
   return $title unless defined($title);
 
+  sub unihex($) { 
+    my ($c) = @_;
+    $c = hex($c);
+    my $s = chr($c);
+
+    # If this is a single-byte non-ASCII character, chr() created a
+    # single-byte non-Unicode string.  Assume that byte is Latin1 and
+    # expand it to the corresponding unicode character.
+    #
+    # Test cases:
+    #   http://www.vimeo.com/82503761			é  as \u00e9\u00a0
+    #   http://www.vimeo.com/123397581			û– as \u00fb\u2013
+    #   http://www.youtube.com/watch?v=z9ScJBmEdQw	ä  as UTF8 (2 bytes)
+    #   http://www.youtube.com/watch?v=eAXmgId3NTQ	ø  as UTF8 (2 bytes)
+    #   http://www.youtube.com/watch?v=FszEaxrHGTs	∆  as UTF8 (3 bytes)
+    #   http://www.youtube.com/watch?v=4ViwSeuWVfE	JP as UTF8 (3 bytes)
+    #
+
+    # If this is still a Latin1 string, upgrade it to wide chars.
+    if (! utf8::is_utf8($s)) {
+      utf8::encode ($s);  # Unpack Latin1 into multi-byte UTF-8.
+      utf8::decode ($s);  # Pack multi-byte UTF-8 into wide chars.
+    }
+    return $s;
+  }
+
   utf8::decode ($title);  # Pack multi-byte UTF-8 back into wide chars.
 
-  $title =~ s/ \\[ux] { ([a-z0-9]+)   } / chr(hex($1)) /gsexi;  # \u{XXXXXX}
-  $title =~ s/ \\[ux]   ([a-z0-9]{4})   / chr(hex($1)) /gsexi;  # \uXXXX
+  # Decode \u and \x syntax.
+  $title =~ s/ \\[ux] { ([a-z0-9]+)   } / unihex($1) /gsexi;  # \u{XXXXXX}
+  $title =~ s/ \\[ux]   ([a-z0-9]{4})   / unihex($1) /gsexi;  # \uXXXX
 
   $title =~ s/[\x{2012}-\x{2013}]+/-/gs;	# various dashes
   $title =~ s/[\x{2014}-\x{2015}]+/--/gs;	# various long dashes
@@ -2813,12 +3040,12 @@ sub cgi_output($$$@) {
   my $audio  = $targets[1];
   my $premux = $targets[2];
 
-  my ($w, $h, $size) = video_url_size ($id, $title,
+  my ($w, $h, $size) = video_url_size ($id,
                                        $video->{url},
                                        $video->{content_type});
   $size = -1 unless defined($size);
 
-  my ($w3, $h3, $size3) = video_url_size ($id, $title,
+  my ($w3, $h3, $size3) = video_url_size ($id,
                                           $premux->{url},
                                           $premux->{content_type})
     if ($premux);
@@ -2837,8 +3064,8 @@ sub cgi_output($$$@) {
   my $wh3 = ($w3 && $h3 ? "$w3 &times; $h3" : "resolution unknown");
   $wh3 = '<SPAN CLASS="err">' . $wh3 . '</SPAN>'
     if (($w3 || 0) < 1024);
-  $ss3 = "$wh3, $ss3";
-
+  $ss3 = "$wh3, $ss3"
+    if $wh3;
 
   my $file = $video->{file};
   my $url  = $video->{url};
@@ -2975,6 +3202,7 @@ sub canonical_url($) {
                     p/ |
                     embed/p/ |
                     playlist\?list=(?:PL)? |
+                    watch\?list=(?:PL)? |
                     embed/videoseries\?list=(?:PL)?
                 )
                 ([^<>?&,]+) ($|&) @sx) {
@@ -3028,20 +3256,39 @@ sub canonical_url($) {
   } elsif ($url =~ 
            m@^https?://(?:[a-z]+\.)?(vimeo)\.com/(?:video/|m/)?(\d+)@s) {
     ($site, $id) = ($1, $2);
+    $url = "http://www.$site.com/$id";
 
   # Vimeo /videos/NNNNNN URLs.
   } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/.*/videos/(\d+)@s) {
     ($site, $id) = ($1, $2);
+    $url = "http://www.$site.com/$id";
 
   # Vimeo /channels/name/NNNNNN URLs.
   # Vimeo /ondemand/name/NNNNNN URLs.
   } elsif ($url =~ 
            m@^https?://(?:[a-z]+\.)?(vimeo)\.com/[^/]+/[^/]+/(\d+)@s) {
     ($site, $id) = ($1, $2);
+    $url = "http://www.$site.com/$id";
 
   # Vimeo /moogaloop.swf?clip_id=NNNNN
   } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/.*clip_id=(\d+)@s) {
     ($site, $id) = ($1, $2);
+    $url = "http://www.$site.com/$id";
+
+  # Tumblr /video/UUU/NNNNN
+  } elsif ($url =~
+           m@^https?://[-_a-z]+\.(tumblr)\.com/video/([^/]+)/(\d{8,})/@si) {
+    my $user;
+    ($site, $user, $id) = ($1, $2, $3);
+    $site = lc($site);
+    $url = "http://$user.$site.com/post/$id";
+
+  # Tumblr /post/NNNNN
+  } elsif ($url =~ m@^https?://([-_a-z]+)\.(tumblr)\.com/.*?/(\d{8,})/@si) {
+    my $user;
+    ($user, $site, $id) = ($1, $2, $3);
+    $site = lc($site);
+    $url = "http://$user.$site.com/post/$id";
 
   } else {
     error ("unparsable URL: $url");
@@ -3141,11 +3388,15 @@ sub mux_downloaded_files($$$$$$) {
   my $s3 = (stat($muxed_file))[7] || 0;
   
   $s1 = $s1 + $s2;
-  if ($s1 > (1024 * 1024) &&
-      $s3 < $s1 * 0.98) {
-    $s1 = fmt_size ($s1);
-    $s3 = fmt_size ($s3);
-    error ("$id: $cmd[0] wrote a short file! Got $s3, expected $s1");
+  my $diff = $s1 - $s3;
+  if ($s1 > (1024 * 1024) &&	# size > 1M
+      $diff > 1024 * 200 &&	# diff > 200K
+      $diff > $s1 * 0.2) {	# diff > 2%
+    my $s1b = fmt_size ($s1);
+    my $s3b = fmt_size ($s3);
+    unlink ($audio_file, $video_file, $muxed_file);
+    error ("$id: $cmd[0] wrote a short file! Got $s3b, expected $s1b" .
+           " ($s1 - $s3 = $diff)");
   }
 
   unlink ($audio_file, $video_file);
@@ -3174,16 +3425,21 @@ sub content_type_ext($) {
   else                            { return 'mp4';  }
 }
 
-sub download_video_url($$$$$$$) {
-  my ($url, $title, $size_p, $list_p,
+sub download_video_url($$$$$$$$) {
+  my ($url, $title, $prefix, $size_p, $list_p,
       $progress_p, $cgi_p, $force_fmt) = @_;
 
   $error_whiteboard = '';	# reset per-URL diagnostics
   $progress_ticks = 0;		# reset progress-bar counters
   $progress_time = 0;
 
-  if ($title) {
-    $title =~ s@\s*[/:]+\s*@ - @gs;  # no colons or slashes
+  # Pack multi-byte UTF-8 back into wide chars.
+  utf8::decode ($title)  if defined($title);
+  utf8::decode ($prefix) if defined($prefix);
+
+  foreach ($title, $prefix) {
+    s@\s*[/:]+\s*@ - @gs if $_;  # no colons or slashes
+    s/^\s+|\s+$//gs if $_;
   }
 
   my ($id, $site);
@@ -3192,7 +3448,7 @@ sub download_video_url($$$$$$$) {
   # If downloading a playlist, recurse.
   #
   if ($url =~ m@view_play_list@s) {
-    return download_youtube_playlist ($id, $url, $title, $size_p,
+    return download_youtube_playlist ($id, $url, $title, $prefix, $size_p,
                                       $list_p, $progress_p, $cgi_p,
                                       $force_fmt);
   }
@@ -3201,7 +3457,8 @@ sub download_video_url($$$$$$$) {
   #
   if ($list_p) {
     if ($list_p > 1) {
-      print STDOUT "$id\t$title\n";
+      my $t2 = ($prefix ? "$prefix $title" : $title);
+      print STDOUT "$id\t$t2\n";
     } else {
       print STDOUT "http://www.$site.com/watch?v=$id\n";
     }
@@ -3234,8 +3491,10 @@ sub download_video_url($$$$$$$) {
     # info to find out the title and thus the file name.
     #
     if (defined($title)) {
-      utf8::decode ($title);  # Pack multi-byte UTF-8 back into wide chars.
-      my $o = (file_exists_with_suffix ("$title") ||
+      my $t2 = ($prefix ? "$prefix $title" : $title);
+      my $o = (file_exists_with_suffix ("$t2") ||
+               file_exists_with_suffix ("$t2$suf") ||
+               file_exists_with_suffix ("$title") ||
                file_exists_with_suffix ("$title$suf"));
       if ($o) {
         exit (1) if ($verbose <= 0); # Skip silently if --quiet.
@@ -3251,6 +3510,7 @@ sub download_video_url($$$$$$$) {
   #
   my $fmts = ($site eq 'youtube' ? load_youtube_formats ($id, $url) :
               $site eq 'vimeo'   ? load_vimeo_formats ($id, $url) :
+              $site eq 'tumblr'  ? load_tumblr_formats ($id, $url) :
               error ("$id: unknown site: $site"));
 
   # Set the title unless it was specified on the command line with --title.
@@ -3261,7 +3521,8 @@ sub download_video_url($$$$$$$) {
     # Add the year to the title unless there's a year there already.
     #
     if ($title !~ m@ \(\d{4}\)@si) {  # skip if already contains " (NNNN)"
-      my $year = ($site eq 'youtube' ? get_youtube_year ($id) :
+      my $year = ($fmts->{year}      ? $fmts->{year}          :
+                  $site eq 'youtube' ? get_youtube_year ($id) :
                   $site eq 'vimeo'   ? get_vimeo_year ($id)   : undef);
       if ($year && 
           $year  != (localtime())[5]+1900 &&   # Omit this year
@@ -3274,7 +3535,10 @@ sub download_video_url($$$$$$$) {
     # check for existing files on disk.
     #
     if (! ($size_p || $list_p)) {
-      my $o = (file_exists_with_suffix ("$title") ||
+      my $t2 = ($prefix ? "$prefix $title" : $title);
+      my $o = (file_exists_with_suffix ("$t2") ||
+               file_exists_with_suffix ("$title") ||
+               file_exists_with_suffix ("$title") ||
                file_exists_with_suffix ("$title$suf"));
       if ($o) {
         exit (1) if ($verbose <= 0); # Skip silently if --quiet.
@@ -3322,7 +3586,7 @@ sub download_video_url($$$$$$$) {
 
     if ($size_p) {
       if (! (($w && $h) || $abr)) {
-        ($w, $h, $size, $abr) = video_url_size ($id, $title, $url2, $ct);
+        ($w, $h, $size, $abr) = video_url_size ($id, $url2, $ct);
       }
 
       my $ii = $id . (@targets == 1 ? '' : ":$target");
@@ -3330,7 +3594,8 @@ sub download_video_url($$$$$$$) {
       my $wh = ($w && $h
                 ? "${w} x ${h}"
                 : "$abr  ");
-      print STDOUT "$ii\t$wh\t$ss\t$title\n";
+      my $t2 = ($prefix ? "$prefix $title" : $title);
+      print STDOUT "$ii\t$wh\t$ss\t$t2\n";
 
     } else {
 
@@ -3342,7 +3607,7 @@ sub download_video_url($$$$$$$) {
                  ? ($target == $pair[0] ? '.video-only' : '.audio-only')
                  : ''));
 
-      my $file = "$title$suf";
+      my $file = ($prefix ? "$prefix $title" : $title) . $suf;
 
       $file .= '.' . content_type_ext($ct);
       $fmt->{file} = $file;
@@ -3420,56 +3685,58 @@ sub download_video_url($$$$$$$) {
 }
 
 
-sub download_youtube_playlist($$$$$$$$) {
-  my ($id, $url, $title, $size_p, $list_p, $progress_p, $cgi_p,
+sub download_youtube_playlist($$$$$$$$$) {
+  my ($id, $url, $title, $prefix, $size_p, $list_p, $progress_p, $cgi_p,
       $force_fmt) = @_;
 
   my @playlist = ();
 
   my $start = 0;
-  while (1) {
 
-    # max-results is ignored if it is >50, so we get 50 at a time until
-    # we run out.
-    my $chunk = 50;
-    my $data_url = ("http://gdata.youtube.com/feeds/api/playlists/$id?v=2" .
-                    "&start-index=" . ($start+1) .
-                    "&max-results=$chunk" .
-                    "&fields=title,entry(title,link)" .
-                    "&safeSearch=none" .
-                    "&strict=true");
+  my ($http, $head, $body) = get_url ($url);
+  check_http_status ($id, $url, $http, 1);
 
-    my ($http, $head, $body) = get_url ($data_url);
-    check_http_status ($id, $url, $http, 1);
+  ($title) = ($body =~ m@<title>\s*([^<>]+?)\s*</title>@si)
+    unless $title;
+  $title = munge_title($title);
+  $title = 'Untitled Playlist' unless $title;
 
-    ($title) = ($body =~ m@<title>\s*([^<>]+?)\s*</title>@si)
-      unless $title;
-    $title = 'Untitled Playlist' unless $title;
+  ($body =~ s/^.*?<div \s+ id="pl-video-list"//six) ||
+    errorI ("unparsable playlist HTML: $url");
 
-    $body =~ s@(<entry)@\001$1@gs;
-    my @entries = split(m/\001/, $body);
-    shift @entries;
-
-    my $i = $start;
-    foreach my $entry (@entries) {
-      my ($t2) = ($entry =~ m@<title>\s*([^<>]+?)\s*</title>@si);
-      my ($u2, $id2) =
-        ($entry =~ m@<link.*?href=[\'\"]
-                     (https?://[a-z.]+/
-                     (?: watch/? (?: \? | \#! ) v= | v/ | embed/ )
-                     ([^<>?&,\'\"]+))@sxi);
-      $t2 = munge_title ($t2);
-      $t2 = sprintf("%s: %02d: %s", $title, ++$i, $t2);
-      push @playlist, [$t2, $u2];
+  my $i = 0;
+  $body =~ s@<A \b (.*?) > \s* ([^<>]*?) \s* </A> @{
+    my ($href, $t2) = ($1, $2);
+    (undef, $href) = ($href =~ m% \b href \s* = \s* (["'])(.*?)\1%six);
+    if ($href && $t2) {
+      $href = html_unquote($href);
+      if ($href =~ m%[?&]v=([^?&]+)%si) {
+        $href = $1;
+        $t2 = munge_title (html_unquote ($t2));
+        $t2 = sprintf("%s: %02d: %s", $title, ++$i, $t2);
+        $href = 'http://www.youtube.com/watch?v=' . $href;
+        push \@playlist, [ $t2, $href ];
+      }
     }
+    "";
+  }@gsexi;
 
-    # With "--size", only get the size of the first video.
-    # With "--size --size", get them all.
-    last if ($size_p == 1);
+  errorI ("$id: no playlist entries?") unless @playlist;
 
-    $start += $chunk;
-    last unless @entries;
+  # With "--size", only get the size of the first video.
+  # With "--size --size", get them all.
+  if ($size_p == 1) {
+    @playlist = ( $playlist[0] );
   }
+
+  # Scraping the HTML only gives us the first hundred videos if the
+  # playlist has more than that.  I don't yet know how to get the
+  # rest.  The "Show More" button at the bottom does AJAX bullshit.
+  #
+  my $max = 100;
+  print STDERR "$progname: WARNING: $id: " .
+               "only able to download the first $max videos!\n"
+    if (@playlist == $max);
 
   print STDERR "$progname: playlist \"$title\" (" . scalar (@playlist) .
                  " entries)\n"
@@ -3479,7 +3746,7 @@ sub download_youtube_playlist($$$$$$$$) {
     my ($t2, $u2) = @$P;
     eval {
       $noerror = 1;
-      download_video_url ($u2, $t2, $size_p, $list_p, $progress_p,
+      download_video_url ($u2, $t2, $prefix, $size_p, $list_p, $progress_p,
                           $cgi_p, $force_fmt);
       $noerror = 0;
     };
@@ -3631,7 +3898,7 @@ sub do_cgi($) {
       if (defined($ENV{PATH_INFO}) && $ENV{PATH_INFO} ne "");
 
     my $force_fmt = ($muxp ? 'mux' : undef);
-    download_video_url ($url, undef, 0, 0, undef, 1, $force_fmt);
+    download_video_url ($url, undef, undef, 0, 0, undef, 1, $force_fmt);
 
   } else {
     error ("no URL specified for CGI");
@@ -3641,8 +3908,9 @@ sub do_cgi($) {
 
 sub usage() {
   print STDERR "usage: $progname" .
-                 " [--verbose] [--quiet] [--size] [--progress] [--suffix]\n" .
-           "\t\t   [--fmt N] [--no-mux] [--title title]\n" .
+                 " [--verbose] [--quiet] [--progress] [--size]\n" .
+           "\t\t   [--title txt] [--prefix txt] [--suffix]\n" .
+           "\t\t   [--fmt N] [--no-mux]\n" .
            "\t\t   youtube-or-vimeo-urls ...\n";
   exit 1;
 }
@@ -3665,6 +3933,7 @@ sub main() {
 
   my @urls = ();
   my $title = undef;
+  my $prefix = undef;
   my $size_p = 0;
   my $list_p = 0;
   my $progress_p = 0;
@@ -3680,6 +3949,7 @@ sub main() {
     elsif (m/^--?q(uiet)?$/) { $verbose--; }
     elsif (m/^--?progress$/) { $progress_p++; }
     elsif (m/^--?suffix$/)   { $append_suffix_p = 1; }
+    elsif (m/^--?prefix$/)   { $expect = $_; $prefix = shift @ARGV; }
     elsif (m/^--?title$/)    { $expect = $_; $title = shift @ARGV; }
     elsif (m/^--?size$/)     { $expect = $_; $size_p++; }
     elsif (m/^--?list$/)     { $expect = $_; $list_p++; }
@@ -3690,7 +3960,7 @@ sub main() {
     elsif (m/^-./)           { usage; }
     else { 
       s@^//@http://@s;
-      error ("not a Youtube or Vimeo URL: $_")
+      error ("not a Youtube, Vimeo or Tumblr URL: $_")
         unless (m@^(https?://)?
                    ([a-z]+\.)?
                    ( youtube(-nocookie)?\.com/ |
@@ -3698,6 +3968,7 @@ sub main() {
                      vimeo\.com/ |
                      google\.com/ .* service=youtube |
                      youtube\.googleapis\.com
+                     tumblr\.com/ |
                    )@six);
       $fmt = 'mux' if ($muxp && !defined($fmt));
       usage if (defined($fmt) && $fmt !~ m/^\d+|all|mux$/s);
@@ -3721,7 +3992,8 @@ sub main() {
   usage unless ($#urls >= 0);
   foreach (@urls) {
     my ($title, $fmt, $url) = @$_;
-    download_video_url ($url, $title, $size_p, $list_p, $progress_p, 0, $fmt);
+    download_video_url ($url, $title, $prefix, 
+                        $size_p, $list_p, $progress_p, 0, $fmt);
   }
 }
 
