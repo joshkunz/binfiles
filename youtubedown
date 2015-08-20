@@ -64,7 +64,7 @@ use HTML::Entities;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.598 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.606 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -1143,6 +1143,13 @@ my %ciphers = (
   'en_US-vflSxbpbe/html5player' => '16636 r w68 w58 r w28 w44 r', # 27 Jul 2015
   'en_US-vflGx3XCd/html5player' => '16636 r w68 w58 r w28 w44 r', # 29 Jul 2015
   'new-en_US-vflIgTSdc/html5player-new' => '16648 r s2 r w43 w41 w8 r w67 r',# 03 Aug 2015
+  'new-en_US-vflnk2PHx/html5player-new' => '16651 r w32 s3 r s1 r',# 06 Aug 2015
+  'new-en_US-vflo_te46/html5player-new' => '16652 r s2 w27 s1',   # 06 Aug 2015
+  'new-en_US-vfllZzMNK/html5player-new' => '16657 w11 w29 w63 r w45 w34 s2',# 11 Aug 2015
+  'new-en_US-vflxgfwPf/html5player-new' => '16657 w11 w29 w63 r w45 w34 s2',# 13 Aug 2015
+  'new-en_US-vflTSd4UU/html5player-new' => '16657 w11 w29 w63 r w45 w34 s2',# 14 Aug 2015
+  'new-en_US-vfl2Ys-gC/html5player-new' => '16657 w11 w29 w63 r w45 w34 s2',# 15 Aug 2015
+  'new-en_US-vflRWS2p7/html5player-new' => '16657 w11 w29 w63 r w45 w34 s2',# 19 Aug 2015
 );
 
 
@@ -2352,7 +2359,8 @@ sub pick_download_format($$$$$) {
    299 => { v => 'mp4',  w => 1920, h => 1080, a => undef               },
    302 => { v => 'webm', w => 1280, h =>  720, a => undef               },
    303 => { v => 'webm', w => 1920, h => 1080, a => undef               },
-   308 => { v => 'mp4',  w => 2560, h => 1440, a => undef               },
+#  308 => { v => 'mp4',  w => 2560, h => 1440, a => undef               },
+   308 => { v => 'webm', w => 2560, h => 1440, a => undef               },
    313 => { v => 'webm', w => 3840, h => 2160, a => undef               },
    315 => { v => 'webm', w => 3840, h => 2160, a => undef               },
   );
@@ -2485,6 +2493,12 @@ sub pick_download_format($$$$$) {
   #   There's a generic rtmpe: URL in "conn" and a bunch of options in
   #   "stream", but I don't know how to put those together into an
   #   invocation of "rtmpdump" that does anything at all.
+  #
+  #   http://www.youtube.com/watch?v=UXMG102kSvk
+  #   17-Aug-2015: WebM higher rez than MP4:
+  #   299 (1920 x 1080 mp4 v/o)
+  #   308 (2560 x 1440 webm v/o)  <-- webm, not mp4
+  #   315 (3840 x 2160 webm v/o)
 
 
   # Divide %known_formats into muxed, video-only and audio-only lists.
@@ -2509,18 +2523,16 @@ sub pick_download_format($$$$$) {
     # Ignore 3d video or other weirdo vcodecs.
     next if ($v && !($v =~ m/^(mp4|flv|3gp|webm)$/));
 
-    # It looks like ffmpeg 2.2.3 can't mux h264 and Vorbis Opus files
-    # together, so let's also ignore webm audio-only and hope that in
-    # that case, mp3 audio-only also exists.
+    # WebM must always go along with Vorbis audio.  ffmpeg can't mux
+    # MP4 video and Vorbis audio together, or WebM video and MP3 audio.
+    # But sometimes the highest bandwidth streams are MP4 + Vorbis,
+    # or WebM + MP3.
     #
-    #    Stream #1:0(eng): Audio: opus, 48000 Hz, stereo, s16 (default)
-    #    [mp4 @ 0x7...] Could not find tag for codec opus in stream #1,
-    #    codec not currently supported in container
-    #
-    # (Perhaps the more general problem here is that webm video must
-    # always and only go with Vorbis audio?)
-    #
+    # So you know what, fuck it, let's just always ignore both WebM
+    # and Vorbis.
+
     next if ($a && !$v && $a =~ m/^(vor)$/);
+    next if (!$a && $v && $v =~ m/^(webm)$/);
 
     if ($v && $a) {
       push @pref_muxed, $id;
