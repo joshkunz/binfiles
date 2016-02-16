@@ -55,6 +55,9 @@ My ~/bin/ files
   forgetting what options I wanted to specify.
 * rundzen - Pipes status.py into [dzen2][] with some custom font options.
 * shuff - Runs [ashuffle][] with some common options.
+* ssha - Reads a password and then generates a salted-sha1 hash of that password
+  using a method acceptable to servers like [nginx][nginx-ssha] for use in
+  auth\_basic passwd files.
 * status.py - A python script that writes various system information to stdout
   in [dzen2][]'s format for display. The top of it actually has a class for adding in
   arbitrary information. It's actually kinda cool.
@@ -100,3 +103,4 @@ My ~/bin/ files
   [qmv]: https://gist.github.com/Joshkunz/a6791ecef6ac0d717921
   [fpick]: https://github.com/Joshkunz/fpick
   [youtubedown]: http://www.jwz.org/hacks/youtubedown
+  [nginx-ssha]: http://nginx.org/en/docs/http/ngx_http_auth_basic_module.html#auth_basic_user_file

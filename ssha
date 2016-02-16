@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+import getpass
+import hashlib
+import base64
+import os
+
+SALT_BYTES = 32
+HASH_TYPE = "{SSHA}"
+
+password = getpass.getpass()
+salt = os.urandom(SALT_BYTES)
+h = hashlib.sha1()
+h.update(password)
+h.update(salt)
+
+print HASH_TYPE + base64.b64encode(h.digest() + salt)
