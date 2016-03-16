@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+WIFI_DEV='wlan0'
+
+function preferred_net () {
+    connmanctl services | egrep -v 'Wired' \
+                        | egrep '^\*' \
+                        | python -c 'import sys; print sys.stdin.readline().split(" ")[-1].strip()'
+}
+
+function wifi_state () {
+    connmanctl state | egrep 'State' | awk '{ print $3 }'
+}
+
+ip link set dev $WIFI_DEV down
+systemctl restart connman wpa_supplicant
+ip link set dev $WIFI_DEV up
+connmanctl scan wifi
+
+sleep 1
+
+net=`preferred_net`
+if [ -z "$net" ]; then
+    echo "No preferred network found."
+    exit 1
+fi
+
+state=`wifi_state`
+
+echo -n "Trying to connect"
+until [ "$state" = "online" ]; do
+    echo -n "."
+    connmanctl connect $net
+    sleep 0.3
+    state=`wifi_state`
+done
+echo "Connected"
