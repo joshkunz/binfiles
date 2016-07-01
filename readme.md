@@ -7,6 +7,10 @@ My ~/bin/ files
 * dupes - A script that given a set of hashes and file names, will output
   duplicate files.
 * dotmake - A script that generates a Makefile to link your dotfiles automatically.
+* fat32-rename - A script that temporarily renames all the files (and directories)
+  in a directory to fat32 compatible names and saves the mapping so it can be un-done
+  later. I mostly use this one for syncing music to my phone which only supports
+  sd cards that have fat32 file naming limitations.
 * finish\_album - Add the tracks from the currently playing song's album
   after the currently playing song. 
 * flac2mp3 - Simple script for converting a directory full of flac files into

@@ -1,0 +1,77 @@
+#!/usr/bin/env python
+
+import os
+import re
+import sys
+from collections import deque
+import json
+
+# Do the breadth-first traversal of directory "root"
+def dirwalk(func, root):
+    q = deque()
+    q.append(root)
+    while len(q) > 0:
+        elem = q.popleft()
+        is_dir = os.path.isdir(elem)
+        rename = func(elem, is_dir=is_dir)
+        elem = rename if rename is not None else elem
+        if not is_dir: continue     # nothing to append for files
+        sub_elems = os.listdir(elem)
+        for sub_elem in sub_elems:
+            sub_name = os.path.join(elem, sub_elem)
+            q.append(sub_name)
+
+class Fat32Renamer(object):
+    RESTRICTED = re.compile(r'["/\*?<>|:!\']')
+
+    def __init__(self):
+        self.seen = set()
+        self.rename_map = {}
+
+    def __call__(self, path, is_dir):
+        entity = os.path.basename(path)
+        above = os.path.dirname(path)
+        self.seen.add(path)
+
+        if self.RESTRICTED.search(entity) is None: return 
+
+        new_name, _ = self.RESTRICTED.subn(lambda *a: "_", entity)
+        new_path = os.path.join(above, new_name)
+
+        if new_path in self.seen:
+            sys.stderr.write("Conflicting name for: '{0}' (from '{1}')\nPath already exists\n".format(new_path, path))
+            return
+        if new_path in self.rename_map:
+            sys.stderr.write("Conflicting name for: '{0}' (from '{1}')\nMatching rename\n".format(new_path, path))
+            return
+
+        self.rename_map[new_path] = path
+        os.rename(path, new_path)
+
+        return new_path
+    
+    def dump_renames_json(self):
+        return json.dumps(self.rename_map)
+
+def fixer(dir, rename_map):
+    cur_paths = list(rename_map.keys())
+    cur_paths.sort(reverse=True)
+    for cur_path in cur_paths:
+        new_path = rename_map[cur_path]
+        print u"renaming {0} -> {1}".format(cur_path, new_path)
+        os.rename(cur_path, new_path)
+
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument("dir", help="root of the directory to rename")
+    parser.add_argument("--restore", action="store_true")
+    args = parser.parse_args()
+
+    if args.restore:
+        map = json.load(sys.stdin)
+        fixer(args.dir, map)
+    else:
+        renamer = Fat32Renamer()
+        dirwalk(renamer, args.dir)
+        sys.stdout.write(renamer.dump_renames_json())
