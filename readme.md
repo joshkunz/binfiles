@@ -59,6 +59,7 @@ My ~/bin/ files
   wrote a script to disconnect it and reconnect it.
 * rip - A script that rips a CD using abcde. This script exists because I kept
   forgetting what options I wanted to specify.
+* rnames - Generate random usernames for various services
 * rundzen - Pipes status.py into [dzen2][] with some custom font options.
 * shuff - Runs [ashuffle][] with some common options.
 * ssha - Reads a password and then generates a salted-sha1 hash of that password

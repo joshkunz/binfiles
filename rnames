@@ -1,0 +1,123 @@
+#!/usr/bin/env python
+
+import string
+import random
+import bisect
+import argparse
+
+letter_freq = [
+    8.167,   #a
+    1.492,   #b
+    2.782,   #c
+    4.253,   #d
+    12.702, #e
+    2.228,   #f
+    2.015,   #g
+    6.094,   #h
+    6.966,   #i
+    0.153,   #j
+    0.772,   #k
+    4.025,   #l
+    2.406,   #m
+    6.749,   #n
+    7.507,   #o
+    1.929,   #p
+    0.095,   #q
+    5.987,   #r
+    6.327,   #s
+    9.056,   #t
+    2.758,   #u
+    0.978,   #v
+    2.360,   #w
+    0.150,   #x
+    1.974,   #y
+    0.074    #z
+]
+
+first_letter_freq = [
+    11.602, #a
+    4.702,  #b
+    3.511,  #c
+    2.670,  #d
+    2.000,  #e
+    3.779,  #f
+    1.950,  #g
+    7.232,  #h
+    6.286,  #i
+    0.631,  #j
+    0.690,  #k
+    2.705,  #l
+    4.374,  #m
+    2.365,  #n
+    6.264,  #o
+    2.545,  #p
+    0.173,  #q
+    1.653,  #r
+    7.755,  #s
+    16.671, #t
+    1.487,  #u
+    0.619,  #v
+    6.661,  #w
+    0.005,  #x
+    1.620,  #y
+    0.050   #z
+]
+
+# Positive Non-Zero Int (pnzi)
+def pnzi(x):
+    i = int(x)
+    if i < 1: raise Exception("{0} < 1".format(i))
+    return i
+
+class WeightedRandomGenerator(object):
+    def __init__(self, weights):
+        self.totals = []
+        running_total = 0
+
+        for w in weights:
+            running_total += w
+            self.totals.append(running_total)
+
+    def next(self):
+        rnd = random.random() * self.totals[-1]
+        return bisect.bisect_right(self.totals, rnd)
+
+    def __call__(self):
+        return self.next()
+
+LetterIndexGenerator = WeightedRandomGenerator(letter_freq)
+FirstLetterIndexGenerator = WeightedRandomGenerator(first_letter_freq)
+
+def random_letter():
+    return string.ascii_lowercase[LetterIndexGenerator.next()]
+
+def random_first_letter():
+    return string.ascii_lowercase[FirstLetterIndexGenerator.next()]
+    
+def norm_word(length):
+    word_chars = []
+    if length < 1: length = 1
+    word_chars.append(random_first_letter())
+    
+    for x in xrange(length-1):
+        word_chars.append(random_letter())
+    return "".join(word_chars)
+
+def space_word(space):
+    def _space_word(length):
+        return "".join(random.choice(space) for j in xrange(length))
+    return _space_word
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--count", type=pnzi, default=1)
+parser.add_argument("-l", "--length", type=pnzi, default=6)
+parser.add_argument("-s", "--space", default=string.lowercase)
+args = parser.parse_args()
+
+if args.space.strip().lower() == "!!normal":
+    space = norm_word
+else:
+    space = space_word(args.space)
+
+for i in xrange(args.count):
+    print space(args.length)
