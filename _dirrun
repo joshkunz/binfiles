@@ -1,0 +1,7 @@
+#!/usr/bin/env fish
+
+status --current-filename | read -g SCRIPT_PATH
+set new_cmd "$argv[1]"
+set -e argv[1]
+
+eval "$SCRIPT_PATH".d/"$new_cmd" "$argv"

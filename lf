@@ -20,6 +20,6 @@ if [[ $COUNT = "" ]]; then
 fi
 
 # Get the size of the files in the directory
-find . $FIND_FLAGS -type f -print0 | xargs -0 du -s \
-    | sort -nr | cut -f2 | tr "\n" "\0" | xargs -0 du -sh \
+find . $FIND_FLAGS -type f -print0 | xargs -0 du -sb \
+    | sort -nr | cut -f2 | tr "\n" "\0" | xargs -0 du -sb \
     | head -n $COUNT

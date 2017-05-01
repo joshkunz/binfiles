@@ -5,34 +5,25 @@ import sys
 import random
 
 parser = ArgumentParser()
-total_group = parser.add_mutually_exclusive_group()
-total_group.add_argument("-a", "--alpha", type=float, required=False, default=0.5)
-count_known = total_group.add_argument_group()
-count_known.add_argument("--total", default=0, type=int,
-                         help="Total number of items coming in on stdin")
-count_known.add_argument("--get", type=int,
-                         help="Number of items to take from the stream (on average)")
-pick_n = total_group.add_argument_group()
-pick_n.add_argument("-n", "--count", type=int, 
-                    help="Buffer stdin and pick exactly 'n' results.")
+parser.add_argument("-n", "--count", type=int, 
+                    help="Pick 'n' results.")
 args = parser.parse_args()
 
-if args.count:
-    buf = [line for line in sys.stdin]
-    if args.count > len(buf):
-        sys.stderr.write("Not enough choices to pick "
-                         "{0} values.\n".format(args.count))
-        sys.exit(1)
-    for _ in range(args.count):
-        i = random.randint(0, len(buf) - 1)
-        print buf[i],
-        buf.pop(i)
-else:
-    if args.total:
-        args.alpha = (float(args.get) / args.total)
+buf = []
 
-    # Fix the percentage
-    args.alpha = 1 - args.alpha
+seen = 0
+for line in sys.stdin:
+    if seen < args.count:
+        buf.append(line)
+    else:
+        # Select a random number from "seen" possible values
+        rand = random.randint(0, seen - 1)
+        # if we select one of the args.count items (args.count-1 possible)
+        if rand <= (args.count - 1):
+            # Then replace that entry in the buffer with the value we picked
+            buf[rand] = line
+    seen += 1
 
-    for line in sys.stdin:
-        if random.random() > args.alpha: print line,
+# print the buffer
+for line in buf:
+    print line,

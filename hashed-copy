@@ -1,0 +1,17 @@
+#!/usr/bin/env fish
+
+if not git diff --quiet $argv[1]; or not git diff --staged --quiet $argv[1];
+    echo \"$argv[1]\" has pending changes, please commit it first.
+    exit 1
+end
+
+set base (echo "$argv[1]" | rev | cut -d '.' -f2- | rev)
+set ext (echo "$argv[1]" | rev | cut -d '.' -f1 | rev)
+if test "$base" = "$argv[1]";
+    set name "$base-"(git log -1 --format="%h")
+else
+    set name "$base-"(git log -1 --format="%h")".$ext"
+end
+
+cp "$argv[1]" "$name"
+echo "$name"
