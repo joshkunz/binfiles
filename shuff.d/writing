@@ -1,0 +1,12 @@
+#!/usr/bin/env fish
+
+set artists "ratatat" "Röyksopp" "el ten eleven" "crystal castles" "copy" "hella" "la femme" "mix master mike" "phronesis" "pomegranate tiger" "zach hill"
+
+set genres "jazz"
+
+cat (for genre in $genres; \
+     mpc search genre "$genre"; end | psub) \
+    (for artist in $artists; \
+     mpc search artist "$artist"; end | psub) \
+    | sort -u \
+    | ashuffle -f -

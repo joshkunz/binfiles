@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+ashuffle --exclude artist "barenaked" \
+         --exclude artist "grand valley" \
+         --exclude artist "death cab" $@ \
+         --exclude aritst "girl talk" album "secret"
